@@ -1,10 +1,10 @@
 # zerollama-dashboard
 
-[llama.cpp](https://github.com/ggml-org/llama.cpp) 서버의 현재 상태를
-한 페이지에 보여주는 라이브 대시보드. 브라우저로 열고, 모델이 무얼
-하고 있는지 보고, 같은 화면에서 모델과 채팅도 할 수 있어요.
+[llama.cpp](https://github.com/ggml-org/llama.cpp) 서버 상태를 한 페이지에
+보여주는 실시간 대시보드입니다. 브라우저에서 열기만 하면 모델이 무엇을
+하고 있는지 한눈에 확인할 수 있고, 같은 화면에서 모델과 대화도 가능합니다.
 
-[**▶ 라이브 데모 보기**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — 진짜 서버 없이 분위기만 먼저 확인할 수 있어요.
+[**▶ 라이브 데모 열기**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — 실제 서버 없이 화면 구성을 먼저 확인할 수 있습니다.
 
 > Languages: [English](README.md) · **한국어** · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
@@ -12,23 +12,27 @@
 ![채팅 패널](docs/screenshots/chat-panel.png)
 ![모바일 화면](docs/screenshots/mobile.png)
 
-## 무엇을 볼 수 있나
+## 주요 기능
 
-- **실시간 상태** — 생성 속도, 요청 대기열, 슬롯 활동이 라이브로 갱신
-- **모델과 채팅**을 대시보드 안에서 바로. 스트리밍 응답, 마크다운
-  렌더, 중지 버튼, temperature / top_p / max tokens 슬라이더
-- **사람말 조언** — 서버에 부담이 갈 때 그 자리에서 알려줌
-  (예: "대기열이 쌓이고 있어요, `--parallel`을 +1 해보세요")
-- **슬롯별 상세** — 샘플링 설정 전부 (temperature, top_k, top_p,
-  repeat_penalty, mirostat …)
-- **5개 국어 UI** — 한국어 / 영어 / 일본어 / 중국어 / 스페인어. 브라우저
-  언어로 자동 시작하고, 헤더에서 언제든 바꿀 수 있음
-- **단일 모델과 라우터 서버** 둘 다 자동으로 감지
+- **실시간 모니터링** — 생성 속도, 요청 대기열, 슬롯 활동이 실시간으로
+  갱신됩니다.
+- **내장 채팅** — 같은 페이지에서 모델과 대화할 수 있습니다. 스트리밍
+  응답, 마크다운 렌더링, 중지 버튼, temperature / top_p / max_tokens
+  슬라이더를 제공합니다.
+- **이해하기 쉬운 권장사항** — 서버에 부하가 걸리면 어떤 옵션을 어떻게
+  조정해야 할지 자연어로 안내합니다. 예: "요청이 대기열에 쌓이고
+  있습니다. `--parallel`을 1 늘려 보세요."
+- **슬롯별 상세 정보** — 모든 샘플링 설정(temperature, top_k, top_p,
+  repeat_penalty, mirostat 등)을 한곳에서 확인할 수 있습니다.
+- **5개 언어 UI** — 한국어 / 영어 / 일본어 / 중국어 / 스페인어. 브라우저
+  언어로 자동 시작되며, 헤더에서 언제든 변경할 수 있습니다.
+- **단일 모델과 라우터 모드** 모두 자동으로 감지합니다.
 
-## 설치
+## 시작하기
 
-비교적 최신 llama-server에 `--metrics`만 추가하면 됩니다. 가장 간단한
-구성은 llama-server가 직접 `monitor.html`을 서빙하는 거예요:
+비교적 최신 버전의 llama-server에 `--metrics` 옵션만 추가하면 됩니다.
+가장 간단한 방법은 llama-server가 `monitor.html`도 함께 제공하도록 두는
+것입니다.
 
 ```bash
 mkdir -p public
@@ -36,10 +40,10 @@ cp monitor.html public/
 llama-server -m model.gguf --metrics --port 8080 --path ./public
 ```
 
-이후 `http://localhost:8080/monitor.html`에 접속.
+이후 브라우저에서 `http://localhost:8080/monitor.html`로 접속합니다.
 
-다른 컴퓨터의 서버에 붙이려면 `monitor.html`을 아무 정적 호스팅에 올리고
-`?server=`로 가리키기:
+다른 컴퓨터에 있는 서버를 모니터링하려면 `monitor.html`을 정적 호스팅
+어디든 올린 뒤 `?server=` 파라미터로 대상 서버를 지정합니다.
 
 ```
 http://localhost:8000/monitor.html?server=http://10.0.0.5:8080
@@ -47,41 +51,44 @@ http://localhost:8000/monitor.html?server=http://10.0.0.5:8080
 
 ## URL 옵션
 
-| 파라미터 | 의미 |
+| 파라미터 | 설명 |
 |---|---|
-| `server` | llama-server URL (기본: 같은 origin) |
-| `model` | 라우터 모드: 기본 선택 모델 |
+| `server` | llama-server URL (기본값: 같은 origin) |
+| `model` | 라우터 모드에서 기본으로 선택할 모델 |
 | `lang` | UI 언어 (`en` / `ko` / `ja` / `zh-CN` / `es`) |
-| `prompt` | 채팅 입력칸 미리 채움 |
-| `demo` | `1` 또는 `router` — 내장 mock 서버 |
-| `poll` | 폴링 간격, ms (기본 `1000`) |
+| `prompt` | 채팅 입력란 초기 텍스트 |
+| `demo` | `1` 또는 `router` — 내장 mock 서버 사용 |
+| `poll` | 폴링 간격, ms (기본값 `1000`) |
 | `log` | 로그 파일 경로 (생략 시 자동 감지) |
 
-설정은 전부 URL 안에. 링크 하나로 같은 화면을 그대로 공유할 수 있어요.
+설정값은 모두 URL에 담깁니다. 링크 하나로 동일한 화면을 그대로 공유할
+수 있습니다.
 
-## 직접 데모 호스팅하기
+## 직접 호스팅하기
 
-누구나 열 수 있는 공개 URL이 필요하면 GitHub Pages가 무료이고 idle
-sleep도 없어요:
+누구나 접속할 수 있는 공개 URL이 필요하다면 GitHub Pages를 권장합니다.
+무료이며 idle sleep도 없습니다.
 
-1. 레포 **Settings → Pages → Source = "GitHub Actions"**
-2. `main`에 push
+1. 저장소 **Settings → Pages → Source = "GitHub Actions"** 로 설정
+2. `main` 브랜치에 push
 
-레포에 포함된 `.github/workflows/pages.yml`이 자동으로 빌드·배포합니다.
-방문자는 `https://<유저>.github.io/<레포>/?demo=1`로 접속.
-정적 파일이라 유지할 백엔드가 없어요.
+저장소에 포함된 `.github/workflows/pages.yml`이 자동으로 빌드 및
+배포합니다. 방문자는 `https://<사용자>.github.io/<저장소>/?demo=1`
+주소로 접속할 수 있습니다. 모두 정적 파일이므로 별도로 유지해야 할
+백엔드가 없습니다.
 
-## 프라이버시와 안전
+## 개인정보와 안전성
 
-- 대시보드는 여러분이 지정한 llama-server URL(과 같은 origin의 로그 파일
-  경로 외에는) 어디에도 데이터를 보내지 않아요.
-- 쿠키, localStorage, 트래킹 같은 것 일체 사용 안 함.
-- 서버 상태를 바꾸는 작업 — 모델 load/unload, 슬롯 KV
-  save/restore/erase — 은 모두 confirm 다이얼로그를 거칩니다.
-- 채팅의 마크다운 렌더는 안전. 모델이 무엇을 출력해도 HTML이나
-  스크립트로 빠져나갈 수 없습니다.
+- 대시보드는 사용자가 지정한 llama-server URL(과 선택적으로 같은
+  origin의 로그 파일 경로) 외에는 어떤 곳에도 데이터를 전송하지
+  않습니다.
+- 쿠키, localStorage, 트래킹은 일절 사용하지 않습니다.
+- 서버 상태를 변경하는 작업(모델 load/unload, 슬롯 KV
+  save/restore/erase)은 모두 확인 대화상자를 거칩니다.
+- 채팅의 마크다운 렌더링은 안전하게 처리됩니다. 모델 응답이 무엇이든
+  HTML이나 스크립트로 실행되지 않습니다.
 
 ## 라이선스
 
-[MIT](LICENSE). [abhiFSD/llama.cpp-Monitor-Dashboard](https://github.com/abhiFSD/llama.cpp-Monitor-Dashboard)에서 영감을 받음.
-기여하려면 [CLAUDE.md](CLAUDE.md) 참고.
+[MIT](LICENSE). [abhiFSD/llama.cpp-Monitor-Dashboard](https://github.com/abhiFSD/llama.cpp-Monitor-Dashboard)에서 영감을 받아 만들었습니다.
+기여 방법은 [CLAUDE.md](CLAUDE.md)를 참고하세요.

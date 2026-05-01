@@ -1,6 +1,15 @@
-# CLAUDE.md — zerollama-dashboard work rules
+# CLAUDE.md — contributor guidance for zerollama-dashboard
 
-## Absolute constraints (PR rejection criteria if violated)
+This file is for anyone contributing code (human or AI). It describes
+the constraints the project keeps to so the dashboard stays a single,
+self-contained HTML file. The filename follows the convention used by
+[Claude Code](https://claude.com/claude-code), which automatically
+reads it as project context.
+
+If you're a user, you don't need to read this — start with the
+[README](README.md).
+
+## Absolute constraints (any change violating these will be rejected)
 
 1. **Single file**: the deliverable is `monitor.html` only. No build step,
    no bundler, no package manager.

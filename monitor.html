@@ -187,6 +187,64 @@
   .slot details > summary::-webkit-details-marker { display: none; }
   .slot details > summary::before { content: "▸ "; }
   .slot details[open] > summary::before { content: "▾ "; }
+  /* models / config */
+  .kv-table {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: 4px 12px; font-family: var(--mono); font-size: 12px;
+  }
+  .kv-table .k { color: var(--fg-mute); }
+  .kv-table .v { color: var(--fg); word-break: break-all; }
+  .model-list {
+    display: grid; gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .model-card {
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .model-card.active { border-color: #2f6db1; }
+  .model-card .name {
+    font-family: var(--mono); font-size: 13px; word-break: break-all;
+  }
+  .badge {
+    display: inline-block; font-size: 11px;
+    padding: 1px 6px; border-radius: 999px;
+    background: var(--bg-3); color: var(--fg-dim);
+    border: 1px solid var(--border);
+  }
+  .badge.status-loaded   { background: #11321b; color: #6dd590; border-color: #2a6234; }
+  .badge.status-loading  { background: #2c2611; color: #e6c963; border-color: #5a4a14; }
+  .badge.status-unloaded { background: var(--bg-3); color: var(--fg-mute); }
+  .badge.status-sleeping { background: #1d2a3d; color: #8eb0d6; border-color: #2f4969; }
+  .badge.status-failed   { background: #3a1216; color: #ff9a93; border-color: #5e2329; }
+  .args-block {
+    background: #0a0d12; border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--fg-dim);
+    overflow: auto; white-space: pre-wrap; word-break: break-all;
+    max-height: 200px;
+  }
+  .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .row-actions button { font-size: 11px; padding: 2px 8px; }
+  /* modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: #000a;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal {
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; min-width: 280px;
+    max-width: 480px; box-shadow: 0 10px 40px #000c;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .modal h3 { margin: 0; font-size: 14px; }
+  .modal .body { color: var(--fg-dim); font-size: 13px; line-height: 1.5; }
+  .modal .body code { color: var(--fg); }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal .actions button.primary { background: #1f4a7a; border-color: #2f6db1; color: #cfe3ff; }
+  .modal .warn { color: var(--warn); font-size: 12px; }
   /* responsive */
   @media (max-width: 480px) {
     header.app { padding: 8px 10px; gap: 8px; }
@@ -784,6 +842,7 @@ async function boot() {
 
   renderBootSummary();
   startCorePollers();
+  startSecondaryPollers();
 }
 
 /* Bare minimum scaffold so later phases have stable mount points to
@@ -807,23 +866,411 @@ function ensureRootScaffold() {
                                style: "display: contents;" }));
 }
 
-/* Render a small "boot summary" placeholder — overwritten by later phases
- * as their cards come online. Shows that boot succeeded. */
+/* Render Models, Server config, and LoRA cards. Re-callable; on each call
+ * we rebuild the section content. Cheap because it's not on the hot path. */
 function renderBootSummary() {
+  renderModelsCard();
+  renderServerConfigCard();
+  renderLoraCard();
+}
+
+function findV1Meta(modelId) {
+  if (!Array.isArray(state.v1models)) return null;
+  return state.v1models.find((m) => m && (m.id === modelId)) || null;
+}
+
+function renderModelsCard() {
   const sec = $("#models-section");
   sec.innerHTML = "";
-  const mode = state.mode === "router" ? "router (multi-model)" : "single";
-  const card = el("div", { class: "card" }, [
+  const card = el("div", { class: "card full" }, [
     el("h2", null, t("models.title")),
-    el("div", { class: "sub" }, "Mode: " + mode),
-    el("div", { class: "sub" }, "Server: " + state.serverBase),
-    state.mode === "router"
-      ? el("div", { class: "sub" }, "Models: " + state.models.length
-            + (state.selectedModel ? " — active: " + state.selectedModel : ""))
-      : el("div", { class: "sub" }, state.props && state.props.model_path
-            ? "model_path: " + state.props.model_path : t("common.unknown")),
   ]);
   sec.appendChild(card);
+
+  if (state.mode === "router") {
+    /* selector + per-model cards */
+    const sel = el("select", { id: "model-selector",
+                               style: "max-width: 100%; min-width: 200px;",
+                               onchange: () => onModelSelect($("#model-selector").value) });
+    sel.appendChild(el("option", { value: "" }, "— " + t("models.selector") + " —"));
+    for (const m of state.models) {
+      sel.appendChild(el("option", {
+        value: m.id,
+        selected: m.id === state.selectedModel ? "selected" : null,
+      }, m.id));
+    }
+    card.appendChild(el("div", { class: "row-actions" }, [
+      el("span", { class: "sub" }, t("models.selector") + ":"),
+      sel,
+    ]));
+
+    if (state.models.length === 0) {
+      card.appendChild(el("div", { class: "sub" }, t("models.no_models")));
+    } else {
+      const list = el("div", { class: "model-list" });
+      for (const m of state.models) list.appendChild(routerModelCard(m));
+      card.appendChild(list);
+    }
+  } else {
+    /* single-model: show the active model's metadata */
+    const id = (state.v1models[0] && state.v1models[0].id)
+            || (state.props && state.props.model_path)
+            || "model";
+    const meta = findV1Meta(id) || state.v1models[0] || null;
+    card.appendChild(singleModelCard(id, meta));
+  }
+}
+
+function routerModelCard(m) {
+  const status = (m.status && m.status.value) || "unknown";
+  const isActive = m.id === state.selectedModel;
+  const meta = findV1Meta(m.id);
+  const node = el("div", { class: "model-card" + (isActive ? " active" : "") }, [
+    el("div", { class: "name" }, m.id),
+    el("div", { class: "row-actions" }, [
+      el("span", { class: "badge status-" + status }, t("models.status." + status)
+        || t("models.status.unknown")),
+      m.in_cache ? el("span", { class: "badge" }, "cached") : null,
+      (m.status && m.status.failed && m.status.exit_code !== undefined && m.status.exit_code !== null)
+        ? el("span", { class: "badge status-failed" },
+            t("models.exit_code") + " " + m.status.exit_code)
+        : null,
+    ].filter(Boolean)),
+    m.path ? el("div", { class: "sub" },
+      el("span", { class: "badge" }, "path") )
+      : null,
+    m.path ? el("div", { class: "sub", style: "word-break: break-all;" }, m.path) : null,
+  ]);
+  if (meta && meta.meta) {
+    node.appendChild(metaKVTable(meta.meta));
+  }
+  if (m.status && Array.isArray(m.status.args) && m.status.args.length) {
+    const argsTxt = m.status.args.join(" ");
+    const block = el("div", { class: "args-block" }, argsTxt);
+    node.appendChild(block);
+    node.appendChild(el("div", { class: "row-actions" }, [
+      el("button", {
+        onclick: (e) => copyToClipboard(argsTxt, e.currentTarget),
+      }, t("common.copy")),
+    ]));
+  }
+  /* load / unload buttons */
+  const actions = el("div", { class: "row-actions" }, []);
+  if (status === "loaded" || status === "sleeping") {
+    actions.appendChild(el("button", {
+      onclick: () => confirmAction(
+        t("models.confirm.unload", { name: m.id }),
+        () => callLoadOrUnload("/models/unload", m.id, "unload")
+      ),
+    }, t("models.actions.unload")));
+  } else {
+    actions.appendChild(el("button", {
+      onclick: () => confirmAction(
+        t("models.confirm.load", { name: m.id }),
+        () => callLoadOrUnload("/models/load", m.id, "load")
+      ),
+    }, t("models.actions.load")));
+  }
+  node.appendChild(actions);
+  return node;
+}
+
+function singleModelCard(id, meta) {
+  const props = state.props || {};
+  const card = el("div", { class: "model-card" }, [
+    el("div", { class: "name" }, id),
+    el("div", { class: "row-actions" }, [
+      props.is_sleeping
+        ? el("span", { class: "badge status-sleeping" }, t("models.status.sleeping"))
+        : el("span", { class: "badge status-loaded" }, t("models.status.loaded")),
+    ]),
+  ]);
+  if (props.model_path) {
+    card.appendChild(el("div", { class: "kv-table" }, [
+      el("div", { class: "k" }, t("model.path")),
+      el("div", { class: "v" }, props.model_path),
+    ]));
+  }
+  if (meta && meta.meta) card.appendChild(metaKVTable(meta.meta));
+  return card;
+}
+
+function metaKVTable(meta) {
+  const rows = [];
+  function row(labelKey, val) {
+    rows.push(el("div", { class: "k" }, t(labelKey)));
+    rows.push(el("div", { class: "v" }, val == null ? "—" : String(val)));
+  }
+  if (meta.n_vocab !== undefined)      row("model.n_vocab",     meta.n_vocab);
+  if (meta.n_ctx_train !== undefined)  row("model.n_ctx_train", meta.n_ctx_train);
+  if (meta.n_embd !== undefined)       row("model.n_embd",      meta.n_embd);
+  if (meta.n_params !== undefined)     row("model.n_params",    fmtNumber(meta.n_params));
+  if (meta.size !== undefined)         row("model.size",        fmtBytes(meta.size));
+  return el("div", { class: "kv-table" }, rows);
+}
+
+function fmtBytes(n) {
+  if (!isFinite(n) || n == null) return "—";
+  if (n >= 1024 * 1024 * 1024) return (n / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+  if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(2) + " MB";
+  if (n >= 1024) return (n / 1024).toFixed(1) + " KB";
+  return n + " B";
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Server config card. Router shows the actual CLI args; single mode
+ *  shows what /props exposes plus a clear note that args are not
+ *  available from the server.
+ * ──────────────────────────────────────────────────────────────────── */
+function renderServerConfigCard() {
+  const sec = $("#config-section");
+  sec.innerHTML = "";
+  const card = el("div", { class: "card full" }, [
+    el("h2", null, t("config.title")),
+  ]);
+  sec.appendChild(card);
+
+  if (state.mode === "router") {
+    card.appendChild(el("div", { class: "sub" }, t("config.router_args")));
+    if (!state.models.length) {
+      card.appendChild(el("div", { class: "sub" }, t("models.no_models")));
+      return;
+    }
+    const list = el("div", { class: "model-list" });
+    for (const m of state.models) {
+      const args = (m.status && Array.isArray(m.status.args)) ? m.status.args.join(" ") : "";
+      const block = el("div", { class: "model-card" }, [
+        el("div", { class: "name" }, m.id),
+        args ? el("div", { class: "args-block" }, args)
+             : el("div", { class: "sub" }, t("common.empty")),
+        args ? el("div", { class: "row-actions" }, [
+          el("button", {
+            onclick: (e) => copyToClipboard(args, e.currentTarget),
+          }, t("common.copy")),
+        ]) : null,
+      ].filter(Boolean));
+      list.appendChild(block);
+    }
+    card.appendChild(list);
+  } else {
+    card.appendChild(el("div", { class: "sub" }, t("config.effective_subset")));
+    const props = state.props || {};
+    const meta = (state.v1models[0] && state.v1models[0].meta) || {};
+    const rows = [];
+    function add(label, v) {
+      if (v === undefined || v === null || v === "") return;
+      rows.push(el("div", { class: "k" }, label));
+      rows.push(el("div", { class: "v" }, typeof v === "object" ? JSON.stringify(v) : String(v)));
+    }
+    add("model_path",   props.model_path);
+    add("total_slots",  props.total_slots);
+    add("modalities",   props.modalities && Object.keys(props.modalities)
+                          .filter((k) => props.modalities[k]).join(", "));
+    add("chat_template (preview)",
+        props.chat_template
+          ? props.chat_template.split("\n").slice(0, 3).join(" / ").slice(0, 200)
+          : null);
+    add("build_info",   props.build_info);
+    add("is_sleeping",  props.is_sleeping ? t("common.yes") : t("common.no"));
+    if (props.default_generation_settings) {
+      const dg = props.default_generation_settings;
+      const dgKeys = ["temperature", "top_k", "top_p", "min_p",
+                      "repeat_penalty", "n_predict"];
+      for (const k of dgKeys) if (dg[k] !== undefined) add("default." + k, dg[k]);
+    }
+    add("n_ctx_train (model)", meta.n_ctx_train);
+    card.appendChild(el("div", { class: "kv-table" }, rows));
+    card.appendChild(el("div", { class: "sub warn",
+      style: "color: var(--warn);"
+    }, t("config.effective_note")));
+  }
+}
+
+function renderLoraCard() {
+  const sec = $("#lora-section");
+  sec.innerHTML = "";
+  const adapters = Array.isArray(state.loraAdapters) ? state.loraAdapters : [];
+  const card = el("div", { class: "card full" }, [
+    el("h2", null, t("lora.title")),
+  ]);
+  sec.appendChild(card);
+  if (!adapters.length) {
+    card.appendChild(el("div", { class: "sub" }, t("lora.empty")));
+    return;
+  }
+  const tbl = el("div", { class: "kv-table" }, [
+    el("div", { class: "k" }, t("lora.id")),
+    el("div", { class: "k" }, t("lora.path")),
+    el("div", { class: "k" }, t("lora.scale")),
+  ]);
+  /* shift to a 3-column layout */
+  tbl.style.gridTemplateColumns = "max-content 1fr max-content";
+  for (const a of adapters) {
+    tbl.appendChild(el("div", { class: "v" }, String(a.id)));
+    tbl.appendChild(el("div", { class: "v" }, String(a.path || "—")));
+    tbl.appendChild(el("div", { class: "v" }, fmtParam(a.scale)));
+  }
+  card.appendChild(tbl);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Router: switching active model. Updates URL (?model=) so the view
+ *  is shareable, restarts pollers so subsequent GETs use the new model,
+ *  and re-renders the model section.
+ * ──────────────────────────────────────────────────────────────────── */
+function onModelSelect(id) {
+  state.selectedModel = id || null;
+  const u = new URL(window.location.href);
+  if (id) u.searchParams.set("model", id);
+  else u.searchParams.delete("model");
+  window.history.replaceState({}, "", u.toString());
+  resetHistories();
+  startCorePollers();
+  renderModelsCard();
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Modal / confirmation.
+ *  We never call window.confirm so we can show formatted body and avoid
+ *  the browser-native dialog blocking the event loop.
+ * ──────────────────────────────────────────────────────────────────── */
+function showModal({ title, bodyNode, okLabel, onOk }) {
+  const back = el("div", { class: "modal-backdrop", role: "dialog", "aria-modal": "true" });
+  const close = () => back.remove();
+  const ok = el("button", { class: "primary", onclick: async () => {
+    ok.disabled = true;
+    try { await onOk(); } finally { close(); }
+  }}, okLabel || t("common.confirm"));
+  const cancel = el("button", { onclick: close }, t("common.cancel"));
+  const m = el("div", { class: "modal" }, [
+    el("h3", null, title),
+    el("div", { class: "body" }, bodyNode),
+    el("div", { class: "warn" }, "⚠ " + (state.mode === "router"
+      ? "This will modify the running router."
+      : "This will affect the running server.")),
+    el("div", { class: "actions" }, [cancel, ok]),
+  ]);
+  back.appendChild(m);
+  back.addEventListener("click", (e) => { if (e.target === back) close(); });
+  document.body.appendChild(back);
+  /* Esc closes */
+  back.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  ok.focus();
+}
+
+function confirmAction(message, onOk) {
+  showModal({
+    title: t("common.confirm"),
+    bodyNode: el("div", null, message),
+    onOk,
+  });
+}
+
+async function copyToClipboard(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+    if (btn) {
+      const old = btn.textContent;
+      btn.textContent = t("common.copied");
+      setTimeout(() => { btn.textContent = old; }, 1200);
+    }
+  } catch (e) {
+    showBanner("clipboard", e.message || "clipboard error", "warn");
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  POST handlers
+ * ──────────────────────────────────────────────────────────────────── */
+async function callLoadOrUnload(path, modelId, kind) {
+  try {
+    await fetchJSON(path, {
+      method: "POST",
+      withModel: false,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelId }),
+      timeout: 60_000,
+    });
+    /* refresh /models so status updates */
+    refreshRouterModels();
+  } catch (e) {
+    showBanner("post-" + kind, kind + ": " + e.message);
+  }
+}
+
+async function refreshRouterModels() {
+  if (state.mode !== "router") return;
+  try {
+    const m = await fetchJSON("/models", { withModel: false, timeout: 6000 });
+    const list = Array.isArray(m) ? m : (m && Array.isArray(m.data) ? m.data
+                : (m && Array.isArray(m.models) ? m.models : []));
+    state.models = list;
+    renderModelsCard();
+    renderServerConfigCard();
+  } catch (e) {
+    showBanner("models-refresh", "/models: " + e.message, "warn");
+  }
+}
+
+/* Real slot action (replaces the Phase 4 stub). */
+async function slotAction(id, action) {
+  const confirmKey = "slots.confirm." + action;
+  const message = t(confirmKey, { id });
+  const fileNode = el("div", null, [
+    el("div", null, message),
+    action !== "erase" ? el("div", { style: "margin-top: 8px;" }, [
+      "filename: ",
+      el("input", { id: "slot-fname", value: "slot_" + id + ".bin",
+                    style: "min-width: 200px;" }),
+    ]) : null,
+  ].filter(Boolean));
+  showModal({
+    title: t("common.confirm"),
+    bodyNode: fileNode,
+    onOk: async () => {
+      const body = action === "erase" ? null : JSON.stringify({
+        filename: ($("#slot-fname") && $("#slot-fname").value) || ("slot_" + id + ".bin"),
+      });
+      try {
+        await fetchJSON("/slots/" + id + "?action=" + action, {
+          method: "POST",
+          withModel: false,
+          headers: action === "erase" ? {} : { "Content-Type": "application/json" },
+          body,
+          timeout: 30_000,
+        });
+      } catch (e) {
+        showBanner("slot-" + action, "slot " + id + " " + action + ": " + e.message);
+      }
+    },
+  });
+}
+
+/* Periodic refresh of router /models and /lora-adapters */
+function startSecondaryPollers() {
+  if (state.mode === "router") {
+    startPoller("models-refresh", Math.max(state.params.poll * 5, 5000), async () => {
+      await refreshRouterModels();
+    });
+  }
+  startPoller("lora", Math.max(state.params.poll * 10, 10_000), async () => {
+    try {
+      const data = await fetchJSON("/lora-adapters", { withModel: true, timeout: 6000 });
+      state.loraAdapters = Array.isArray(data) ? data : [];
+      renderLoraCard();
+    } catch (e) {
+      if (e.status === 404) { state.loraAdapters = []; renderLoraCard(); return; }
+      throw e;
+    }
+  });
+  startPoller("props-refresh", 15_000, async () => {
+    try {
+      const p = await fetchJSON("/props", { withModel: true, timeout: 6000 });
+      state.props = p;
+      renderModelsCard();
+      renderServerConfigCard();
+    } catch (_e) { /* non-fatal */ }
+  });
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -1233,11 +1680,7 @@ function updateSlotNode(node, s) {
 }
 function num(v, fb) { return (typeof v === "number" && isFinite(v)) ? v : fb; }
 
-/* Phase 5 replaces this with confirm + POST. Phase 4 stub no-ops. */
-function slotAction(id, action) {
-  /* eslint-disable-next-line no-console */
-  console.warn("slot action not wired yet:", id, action);
-}
+/* slotAction is defined in Phase 5 (confirm + POST). */
 
 /* Boot wiring → metrics + slots pollers. */
 function startCorePollers() {

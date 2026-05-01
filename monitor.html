@@ -422,13 +422,15 @@ const I18N = {
     "metrics.title":            "Metrics",
     "metrics.gen_tps":          "Generation tok/s",
     "metrics.prompt_tps":       "Prompt tok/s",
-    "metrics.kv_cache_usage":   "KV cache",
-    "metrics.kv_cache_tokens":  "KV cache tokens",
     "metrics.processing":       "Processing",
     "metrics.deferred":         "Deferred",
+    "metrics.busy_slots":       "Busy slots / decode",
     "metrics.n_tokens_max":     "Tokens max",
     "metrics.prompt_total":     "Prompt total",
     "metrics.predicted_total":  "Predicted total",
+    "metrics.decode_total":     "Decode calls",
+    "metrics.prompt_seconds_total":    "Prompt time total",
+    "metrics.predicted_seconds_total": "Generation time total",
     "metrics.no_data":          "no data yet",
 
     "slots.title":              "Slots",
@@ -500,9 +502,9 @@ const I18N = {
     "guidance.tooltip_more":    "Tap for details",
 
     /* guidance rules — Phase 7 fills out title/explain/suggest per id */
-    "rule.kv_cache_high.title":    "KV cache near full",
-    "rule.kv_cache_high.explain":  "kv_cache_usage_ratio is the fraction of the KV cache currently in use. Values above ~0.9 sustained mean prompts will start being truncated or rejected.",
-    "rule.kv_cache_high.suggest":  "Raise --ctx-size, lower --parallel, or enable --ctx-shift if your model supports it.",
+    "rule.busy_slots_high.title":   "Slots saturated",
+    "rule.busy_slots_high.explain": "n_busy_slots_per_decode is the average number of slots that were actively decoding during each model step. When it stays close to total_slots the server has no headroom — new requests will queue.",
+    "rule.busy_slots_high.suggest": "Raise --parallel by 1 (each slot costs roughly ctx_size tokens of KV memory), or reduce client concurrency.",
 
     "rule.deferred.title":         "Requests being deferred",
     "rule.deferred.explain":       "requests_deferred is the queue of requests waiting for a free slot. > 0 sustained means clients are facing latency from queueing, not from inference.",
@@ -585,10 +587,12 @@ const I18N = {
     "metrics.title":           "메트릭",
     "metrics.gen_tps":         "생성 tok/s",
     "metrics.prompt_tps":      "프롬프트 tok/s",
-    "metrics.kv_cache_usage":  "KV 캐시",
-    "metrics.kv_cache_tokens": "KV 캐시 토큰",
     "metrics.processing":      "처리 중",
     "metrics.deferred":        "대기 중",
+    "metrics.busy_slots":      "디코드당 busy 슬롯",
+    "metrics.decode_total":    "디코드 호출",
+    "metrics.prompt_seconds_total":    "프롬프트 처리 누계",
+    "metrics.predicted_seconds_total": "생성 시간 누계",
     "metrics.n_tokens_max":    "최대 토큰",
     "metrics.prompt_total":    "프롬프트 누계",
     "metrics.predicted_total": "생성 누계",
@@ -655,9 +659,9 @@ const I18N = {
     "guidance.severity.warn": "주의",
     "guidance.severity.bad":  "조치 필요",
     "guidance.tooltip_more":  "탭하면 자세히",
-    "rule.kv_cache_high.title":    "KV 캐시 사용률 높음",
-    "rule.kv_cache_high.explain":  "kv_cache_usage_ratio는 현재 KV 캐시 사용 비율입니다. ~0.9가 지속되면 프롬프트가 잘리거나 거부될 수 있습니다.",
-    "rule.kv_cache_high.suggest":  "--ctx-size를 늘리거나 --parallel을 줄이거나, 모델이 지원하면 --ctx-shift를 활성화하세요.",
+    "rule.busy_slots_high.title":   "슬롯 포화",
+    "rule.busy_slots_high.explain": "n_busy_slots_per_decode는 매 디코드 단계에서 활성이었던 슬롯 수의 평균입니다. total_slots에 가까운 값이 지속되면 서버 여유가 없고 신규 요청은 큐에 쌓입니다.",
+    "rule.busy_slots_high.suggest": "--parallel을 1 늘리거나(슬롯당 대략 ctx_size 토큰의 KV 메모리), 클라이언트 동시성을 줄이세요.",
     "rule.deferred.title":         "요청이 대기열에 쌓이는 중",
     "rule.deferred.explain":       "requests_deferred는 빈 슬롯을 기다리는 요청 수입니다. 0보다 큰 상태가 지속되면 클라이언트는 추론이 아닌 큐 대기로 인한 지연을 겪습니다.",
     "rule.deferred.suggest":       "--parallel을 1 늘리거나(슬롯당 ctx_size만큼 KV 메모리 추가) 클라이언트 동시성을 줄이세요.",
@@ -729,10 +733,12 @@ const I18N = {
     "metrics.title":           "メトリクス",
     "metrics.gen_tps":         "生成 tok/s",
     "metrics.prompt_tps":      "プロンプト tok/s",
-    "metrics.kv_cache_usage":  "KV キャッシュ",
-    "metrics.kv_cache_tokens": "KV キャッシュ トークン",
     "metrics.processing":      "処理中",
     "metrics.deferred":        "待機中",
+    "metrics.busy_slots":      "デコード毎の使用中スロット",
+    "metrics.decode_total":    "デコード呼び出し",
+    "metrics.prompt_seconds_total":    "プロンプト処理時間 累計",
+    "metrics.predicted_seconds_total": "生成時間 累計",
     "metrics.n_tokens_max":    "最大トークン",
     "metrics.prompt_total":    "プロンプト累計",
     "metrics.predicted_total": "生成累計",
@@ -799,9 +805,9 @@ const I18N = {
     "guidance.severity.warn": "注意",
     "guidance.severity.bad":  "対応推奨",
     "guidance.tooltip_more":  "タップで詳細",
-    "rule.kv_cache_high.title":    "KV キャッシュが満杯近い",
-    "rule.kv_cache_high.explain":  "kv_cache_usage_ratio は KV キャッシュの使用率です。0.9 以上が継続するとプロンプトが切り捨て・拒否される可能性があります。",
-    "rule.kv_cache_high.suggest":  "--ctx-size を増やす、--parallel を減らす、対応モデルなら --ctx-shift を有効化してください。",
+    "rule.busy_slots_high.title":   "スロット飽和",
+    "rule.busy_slots_high.explain": "n_busy_slots_per_decode は各デコードステップで稼働していたスロット数の平均です。total_slots に近い値が続くと余裕がなくなり、新規リクエストはキューに溜まります。",
+    "rule.busy_slots_high.suggest": "--parallel を 1 増やす(スロットごとに約 ctx_size トークンの KV メモリが必要)、またはクライアント並行度を下げてください。",
     "rule.deferred.title":         "リクエストが遅延しています",
     "rule.deferred.explain":       "requests_deferred は空きスロットを待つキューの長さです。0 より大きい状態が続くと、推論ではなくキュー待ちが遅延の主因になります。",
     "rule.deferred.suggest":       "--parallel を 1 増やす(各スロットは ctx_size 分の KV メモリを消費)、またはクライアントの同時実行を減らしてください。",
@@ -873,10 +879,12 @@ const I18N = {
     "metrics.title":           "指标",
     "metrics.gen_tps":         "生成 tok/s",
     "metrics.prompt_tps":      "提示 tok/s",
-    "metrics.kv_cache_usage":  "KV 缓存",
-    "metrics.kv_cache_tokens": "KV 缓存 tokens",
     "metrics.processing":      "处理中",
     "metrics.deferred":        "排队",
+    "metrics.busy_slots":      "每次解码繁忙槽位",
+    "metrics.decode_total":    "解码调用次数",
+    "metrics.prompt_seconds_total":    "提示处理累计时间",
+    "metrics.predicted_seconds_total": "生成累计时间",
     "metrics.n_tokens_max":    "最大 tokens",
     "metrics.prompt_total":    "提示累计",
     "metrics.predicted_total": "生成累计",
@@ -943,9 +951,9 @@ const I18N = {
     "guidance.severity.warn": "注意",
     "guidance.severity.bad":  "需处理",
     "guidance.tooltip_more":  "点击查看详情",
-    "rule.kv_cache_high.title":    "KV 缓存接近满",
-    "rule.kv_cache_high.explain":  "kv_cache_usage_ratio 表示 KV 缓存的当前使用率。持续高于 0.9 时,提示可能被截断或拒绝。",
-    "rule.kv_cache_high.suggest":  "提高 --ctx-size、降低 --parallel,或在模型支持时启用 --ctx-shift。",
+    "rule.busy_slots_high.title":   "槽位饱和",
+    "rule.busy_slots_high.explain": "n_busy_slots_per_decode 是每次解码步骤中处于活动状态的槽位平均数。当其接近 total_slots 时服务器无余量,新请求会排队。",
+    "rule.busy_slots_high.suggest": "将 --parallel 增加 1(每个槽位约需 ctx_size 个 token 的 KV 内存),或减少客户端并发数。",
     "rule.deferred.title":         "请求被排队",
     "rule.deferred.explain":       "requests_deferred 是等待空闲槽位的请求队列。持续大于 0 意味着客户端的延迟来自排队,而非推理。",
     "rule.deferred.suggest":       "将 --parallel 加 1 (每个槽位约消耗 ctx_size 的 KV 内存),或降低客户端并发。",
@@ -1017,10 +1025,12 @@ const I18N = {
     "metrics.title":           "Métricas",
     "metrics.gen_tps":         "Generación tok/s",
     "metrics.prompt_tps":      "Prompt tok/s",
-    "metrics.kv_cache_usage":  "Caché KV",
-    "metrics.kv_cache_tokens": "Tokens caché KV",
     "metrics.processing":      "Procesando",
     "metrics.deferred":        "En cola",
+    "metrics.busy_slots":      "Slots ocupados / decode",
+    "metrics.decode_total":    "Llamadas a decode",
+    "metrics.prompt_seconds_total":    "Tiempo total prompt",
+    "metrics.predicted_seconds_total": "Tiempo total generación",
     "metrics.n_tokens_max":    "Tokens máx.",
     "metrics.prompt_total":    "Prompt total",
     "metrics.predicted_total": "Generado total",
@@ -1087,9 +1097,9 @@ const I18N = {
     "guidance.severity.warn": "atención",
     "guidance.severity.bad":  "acción",
     "guidance.tooltip_more":  "Toca para más detalle",
-    "rule.kv_cache_high.title":    "Caché KV casi llena",
-    "rule.kv_cache_high.explain":  "kv_cache_usage_ratio es la fracción de la caché KV en uso. Valores por encima de ~0.9 sostenidos provocan que los prompts sean truncados o rechazados.",
-    "rule.kv_cache_high.suggest":  "Aumenta --ctx-size, reduce --parallel o activa --ctx-shift si tu modelo lo soporta.",
+    "rule.busy_slots_high.title":   "Slots saturados",
+    "rule.busy_slots_high.explain": "n_busy_slots_per_decode es el promedio de slots activos durante cada paso de decode. Cuando se acerca a total_slots el servidor no tiene margen y las nuevas peticiones se encolan.",
+    "rule.busy_slots_high.suggest": "Aumenta --parallel en 1 (cada slot consume aproximadamente ctx_size tokens de memoria KV) o reduce la concurrencia del cliente.",
     "rule.deferred.title":         "Las peticiones se están encolando",
     "rule.deferred.explain":       "requests_deferred es la cola de peticiones esperando un slot libre. > 0 sostenido implica latencia por cola, no por inferencia.",
     "rule.deferred.suggest":       "Sube --parallel en 1 (cada slot cuesta ~ctx_size tokens de memoria KV) o reduce la concurrencia del cliente.",
@@ -1958,13 +1968,18 @@ function sustained(id, condition, seconds) {
 
 const RULES = [
   /* --- aggregate metrics --- */
-  function ruleKvCacheHigh(s) {
-    const v = s.metrics && s.metrics["llamacpp:kv_cache_usage_ratio"];
-    if (v == null) return null;
-    if (sustained("kv_cache_high", v >= 0.9, 30)) {
-      return rule("kv_cache_high", "bad", { value: (v * 100).toFixed(1) + "%" });
+  function ruleBusySlots(s) {
+    /* n_busy_slots_per_decode is the running average of how many slots
+     * were busy during each llama_decode() call. Compared to total_slots
+     * this tells us if the server is running near saturation. */
+    const v = s.metrics && s.metrics["llamacpp:n_busy_slots_per_decode"];
+    const total = s.props && s.props.total_slots;
+    if (v == null || !total) return null;
+    const ratio = v / total;
+    if (sustained("busy_slots_high", ratio >= 0.9, 30)) {
+      return rule("busy_slots_high", "warn",
+        { value: v.toFixed(2) + " / " + total });
     }
-    if (v >= 0.75) return rule("kv_cache_high", "warn", { value: (v * 100).toFixed(1) + "%" });
     return null;
   },
   function ruleDeferred(s) {
@@ -2462,38 +2477,40 @@ function sparkline(data, opts) {
  *  Metrics rendering. We build a fixed set of cards once, then update
  *  values + sparkline in place to avoid layout jitter.
  *
- *  Available llamacpp metrics:
- *    llamacpp:prompt_tokens_total
- *    llamacpp:tokens_predicted_total
- *    llamacpp:prompt_tokens_seconds
- *    llamacpp:predicted_tokens_seconds
- *    llamacpp:kv_cache_usage_ratio   (0..1)
- *    llamacpp:kv_cache_tokens
- *    llamacpp:requests_processing
- *    llamacpp:requests_deferred
- *    llamacpp:n_tokens_max
+ *  Metrics emitted by current llama.cpp master (/metrics endpoint):
+ *    counter: prompt_tokens_total, prompt_seconds_total,
+ *             tokens_predicted_total, tokens_predicted_seconds_total,
+ *             n_decode_total, n_tokens_max, n_busy_slots_per_decode
+ *    gauge:   prompt_tokens_seconds, predicted_tokens_seconds,
+ *             requests_processing, requests_deferred
+ *
+ *  kv_cache_usage_ratio and kv_cache_tokens were removed upstream — we
+ *  derive nothing from them here.
  * ──────────────────────────────────────────────────────────────────── */
 const METRIC_CARDS = [
   { id: "predicted_tps", titleKey: "metrics.gen_tps",
     metric: "llamacpp:predicted_tokens_seconds", unit: "tok/s", min: 0 },
   { id: "prompt_tps",    titleKey: "metrics.prompt_tps",
     metric: "llamacpp:prompt_tokens_seconds",    unit: "tok/s", min: 0 },
-  { id: "kv_cache",      titleKey: "metrics.kv_cache_usage",
-    metric: "llamacpp:kv_cache_usage_ratio",     unit: "%",     min: 0, max: 1, percent: true,
-    warnAt: 0.75, badAt: 0.9 },
   { id: "processing",    titleKey: "metrics.processing",
     metric: "llamacpp:requests_processing",      unit: "",      min: 0 },
   { id: "deferred",      titleKey: "metrics.deferred",
     metric: "llamacpp:requests_deferred",        unit: "",      min: 0,
     warnAt: 1, badAt: 5 },
-  { id: "kv_tokens",     titleKey: "metrics.kv_cache_tokens",
-    metric: "llamacpp:kv_cache_tokens",          unit: "tok",   min: 0 },
+  { id: "busy_slots",    titleKey: "metrics.busy_slots",
+    metric: "llamacpp:n_busy_slots_per_decode",  unit: "",      min: 0 },
   { id: "n_tokens_max",  titleKey: "metrics.n_tokens_max",
     metric: "llamacpp:n_tokens_max",             unit: "tok",   min: 0 },
   { id: "prompt_total",  titleKey: "metrics.prompt_total",
     metric: "llamacpp:prompt_tokens_total",      unit: "tok",   min: 0, cumulative: true },
   { id: "predicted_total", titleKey: "metrics.predicted_total",
     metric: "llamacpp:tokens_predicted_total",   unit: "tok",   min: 0, cumulative: true },
+  { id: "decode_total", titleKey: "metrics.decode_total",
+    metric: "llamacpp:n_decode_total",           unit: "",      min: 0, cumulative: true },
+  { id: "prompt_seconds_total", titleKey: "metrics.prompt_seconds_total",
+    metric: "llamacpp:prompt_seconds_total",     unit: "s",     min: 0, cumulative: true },
+  { id: "predicted_seconds_total", titleKey: "metrics.predicted_seconds_total",
+    metric: "llamacpp:tokens_predicted_seconds_total", unit: "s", min: 0, cumulative: true },
 ];
 
 function fmtNumber(n, opts) {

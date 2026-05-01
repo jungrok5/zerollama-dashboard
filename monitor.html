@@ -305,6 +305,36 @@
   .sev-badge.info { color: #79c0ff; border-color: #2f4969; }
   .sev-badge.warn { color: #e3b341; border-color: #5a4a14; }
   .sev-badge.bad  { color: #ff7b72; border-color: #5e2329; }
+  /* a11y / focus */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* footer */
+  footer.app {
+    padding: 14px; color: var(--fg-mute); font-size: 12px;
+    text-align: center; border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  footer.app a { color: var(--accent); text-decoration: none; }
+  footer.app a:hover { text-decoration: underline; }
+  /* header last-update */
+  header.app .last-update {
+    color: var(--fg-mute); font-size: 11px; font-family: var(--mono);
+  }
+  /* very narrow mobile */
+  @media (max-width: 360px) {
+    header.app .brand { font-size: 13px; }
+    header.app .server { display: none; }
+    main { padding: 8px; gap: 8px; }
+    .card { padding: 10px; }
+    .card .value { font-size: 20px; }
+  }
+  /* honor user reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .led, .pct-bar > span { transition: none; }
+  }
   /* responsive */
   @media (max-width: 480px) {
     header.app { padding: 8px 10px; gap: 8px; }
@@ -320,6 +350,7 @@
   <span class="brand">zero<span class="dot">·</span>llama</span>
   <span id="status-led" class="led" aria-live="polite"></span>
   <span id="status-text" class="status-pill" data-i18n="header.status.connecting">…</span>
+  <span id="last-update" class="last-update" aria-live="polite"></span>
   <span class="grow"></span>
   <span id="server-display" class="server" title=""></span>
   <select id="lang-select" aria-label="Language" title="Language">
@@ -336,6 +367,12 @@
 <main id="root">
   <div class="empty-hint" data-i18n="boot.preparing">Preparing…</div>
 </main>
+
+<footer class="app">
+  <span data-i18n="footer.attribution">Inspired by abhiFSD/llama.cpp-Monitor-Dashboard (MIT)</span>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/jungrok5/zerollama-dashboard" target="_blank" rel="noopener">GitHub</a>
+</footer>
 
 <script>
 "use strict";
@@ -1775,8 +1812,9 @@ function showModal({ title, bodyNode, okLabel, onOk }) {
   back.appendChild(m);
   back.addEventListener("click", (e) => { if (e.target === back) close(); });
   document.body.appendChild(back);
-  /* Esc closes */
-  back.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  /* Esc closes — listen on document so focus position doesn't matter */
+  const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
+  document.addEventListener("keydown", onKey);
   ok.focus();
 }
 
@@ -2732,6 +2770,36 @@ function startCorePollers() {
     }
   });
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Polish (Phase 9): keyboard shortcuts, last-update ticker.
+ * ──────────────────────────────────────────────────────────────────── */
+document.addEventListener("keydown", (e) => {
+  /* don't steal keys when the user is typing in an input/select/etc. */
+  const tag = (e.target && e.target.tagName) || "";
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  if (e.key === " " || e.code === "Space") {
+    e.preventDefault();
+    setPaused(!state.paused);
+  } else if (e.key === "r" || e.key === "R") {
+    resetHistories();
+    /* repaint sparklines with empty data on next tick */
+    if (state.metrics) renderMetrics(state.metrics);
+  }
+});
+
+function tickLastUpdate() {
+  const node = $("#last-update");
+  if (!node) return;
+  if (!state.lastUpdate) { node.textContent = ""; return; }
+  const ageSec = Math.max(0, Math.round((Date.now() - state.lastUpdate) / 1000));
+  node.textContent = t("header.last_update") + ": " + ageSec + "s";
+}
+setInterval(tickLastUpdate, 1000);
+/* one allowed setInterval — read-only DOM update, no fetch involved,
+ * so the "no setInterval for fetches" rule still holds. */
 
 document.addEventListener("DOMContentLoaded", boot);
 </script>

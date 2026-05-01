@@ -114,6 +114,31 @@
   .empty-hint {
     color: var(--fg-mute); font-size: 12px; padding: 12px 14px;
   }
+  /* metrics */
+  .metric-card .row {
+    display: flex; align-items: baseline; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .metric-card .unit { color: var(--fg-mute); font-size: 13px; font-family: var(--mono); }
+  .metric-card svg { width: 100%; height: 36px; display: block; }
+  .metric-card .spark-area  { fill: #58a6ff22; }
+  .metric-card .spark-line  { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+  .metric-card .spark-grid  { stroke: var(--border); stroke-width: 1; }
+  .metric-card.warn .value  { color: var(--warn); }
+  .metric-card.bad  .value  { color: var(--bad); }
+  .metric-card.warn .spark-line { stroke: var(--warn); }
+  .metric-card.warn .spark-area { fill: #d2992233; }
+  .metric-card.bad  .spark-line { stroke: var(--bad); }
+  .metric-card.bad  .spark-area { fill: #f8514933; }
+  .metric-card.disabled .value { color: var(--fg-mute); }
+  .pct-bar {
+    height: 6px; background: var(--bg-3);
+    border-radius: 3px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .pct-bar > span { display: block; height: 100%; background: var(--accent); transition: width 0.2s; }
+  .pct-bar.warn > span { background: var(--warn); }
+  .pct-bar.bad  > span { background: var(--bad); }
   /* responsive */
   @media (max-width: 480px) {
     header.app { padding: 8px 10px; gap: 8px; }
@@ -753,9 +778,244 @@ function renderBootSummary() {
   sec.appendChild(card);
 }
 
-/* Phase 3+ replace this. Phase 2 stub starts no pollers. */
+/* ──────────────────────────────────────────────────────────────────────
+ *  Prometheus text parser. We only need plain numeric metrics — no
+ *  histograms or labelled series — so a minimal regex parser is fine.
+ *  Lines look like:    metric_name{label="x"} 42.0
+ *  We strip comments, ignore label sets, and keep the last value seen.
+ * ──────────────────────────────────────────────────────────────────── */
+function parsePrometheus(text) {
+  const out = {};
+  const lines = text.split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    /* metric name = up to first '{' or whitespace */
+    const m = line.match(/^([A-Za-z_:][\w:]*)(\{[^}]*\})?\s+(-?[\d.eE+\-]+|NaN|\+?Inf|-Inf)/);
+    if (!m) continue;
+    const name = m[1];
+    const v = m[3];
+    let n;
+    if (v === "NaN") n = NaN;
+    else if (v === "+Inf" || v === "Inf") n = Infinity;
+    else if (v === "-Inf") n = -Infinity;
+    else n = parseFloat(v);
+    out[name] = n;
+  }
+  return out;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Time series buffers — fixed-length ring of {t, v} samples per metric.
+ *  60 s window at 1 s sampling = ~60 points. Enough for a sparkline.
+ * ──────────────────────────────────────────────────────────────────── */
+const HISTORY_SECONDS = 60;
+const histories = Object.create(null);
+function pushHistory(key, v) {
+  let h = histories[key];
+  if (!h) h = histories[key] = [];
+  const now = Date.now();
+  h.push({ t: now, v });
+  const cutoff = now - HISTORY_SECONDS * 1000;
+  while (h.length && h[0].t < cutoff) h.shift();
+  return h;
+}
+function resetHistories() {
+  for (const k in histories) delete histories[k];
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  SVG sparkline. No external deps. Returns an <svg> node.
+ *  - data: array of {t, v}
+ *  - opts: { min, max, height }
+ * ──────────────────────────────────────────────────────────────────── */
+function sparkline(data, opts) {
+  const W = 200, H = (opts && opts.height) || 36;
+  const pad = 1;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("preserveAspectRatio", "none");
+  if (!data || data.length < 2) {
+    /* render an empty axis so the layout doesn't jump */
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    g.setAttribute("x1", 0); g.setAttribute("x2", W);
+    g.setAttribute("y1", H - pad); g.setAttribute("y2", H - pad);
+    g.setAttribute("class", "spark-grid");
+    svg.appendChild(g);
+    return svg;
+  }
+  /* x scale = real time so gaps/holes show as gaps */
+  const t0 = data[0].t, t1 = data[data.length - 1].t;
+  const span = Math.max(1, t1 - t0);
+  let vMin = (opts && opts.min !== undefined) ? opts.min : Infinity;
+  let vMax = (opts && opts.max !== undefined) ? opts.max : -Infinity;
+  if (opts && opts.min === undefined) for (const p of data) if (p.v < vMin) vMin = p.v;
+  if (opts && opts.max === undefined) for (const p of data) if (p.v > vMax) vMax = p.v;
+  if (!isFinite(vMin)) vMin = 0;
+  if (!isFinite(vMax)) vMax = 1;
+  if (vMax - vMin < 1e-9) { vMax = vMin + 1; }
+  const sx = (t) => ((t - t0) / span) * W;
+  const sy = (v) => H - pad - ((v - vMin) / (vMax - vMin)) * (H - 2 * pad);
+  const points = data.map((p) => sx(p.t).toFixed(1) + "," + sy(p.v).toFixed(1)).join(" ");
+  /* baseline rule */
+  const base = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  base.setAttribute("x1", 0); base.setAttribute("x2", W);
+  base.setAttribute("y1", H - pad); base.setAttribute("y2", H - pad);
+  base.setAttribute("class", "spark-grid");
+  svg.appendChild(base);
+  /* filled area */
+  const area = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  area.setAttribute("points",
+    "0," + (H - pad) + " " + points + " " + W + "," + (H - pad));
+  area.setAttribute("class", "spark-area");
+  svg.appendChild(area);
+  /* line */
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  line.setAttribute("points", points);
+  line.setAttribute("class", "spark-line");
+  svg.appendChild(line);
+  return svg;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Metrics rendering. We build a fixed set of cards once, then update
+ *  values + sparkline in place to avoid layout jitter.
+ *
+ *  Available llamacpp metrics:
+ *    llamacpp:prompt_tokens_total
+ *    llamacpp:tokens_predicted_total
+ *    llamacpp:prompt_tokens_seconds
+ *    llamacpp:predicted_tokens_seconds
+ *    llamacpp:kv_cache_usage_ratio   (0..1)
+ *    llamacpp:kv_cache_tokens
+ *    llamacpp:requests_processing
+ *    llamacpp:requests_deferred
+ *    llamacpp:n_tokens_max
+ * ──────────────────────────────────────────────────────────────────── */
+const METRIC_CARDS = [
+  { id: "predicted_tps", titleKey: "metrics.gen_tps",
+    metric: "llamacpp:predicted_tokens_seconds", unit: "tok/s", min: 0 },
+  { id: "prompt_tps",    titleKey: "metrics.prompt_tps",
+    metric: "llamacpp:prompt_tokens_seconds",    unit: "tok/s", min: 0 },
+  { id: "kv_cache",      titleKey: "metrics.kv_cache_usage",
+    metric: "llamacpp:kv_cache_usage_ratio",     unit: "%",     min: 0, max: 1, percent: true,
+    warnAt: 0.75, badAt: 0.9 },
+  { id: "processing",    titleKey: "metrics.processing",
+    metric: "llamacpp:requests_processing",      unit: "",      min: 0 },
+  { id: "deferred",      titleKey: "metrics.deferred",
+    metric: "llamacpp:requests_deferred",        unit: "",      min: 0,
+    warnAt: 1, badAt: 5 },
+  { id: "kv_tokens",     titleKey: "metrics.kv_cache_tokens",
+    metric: "llamacpp:kv_cache_tokens",          unit: "tok",   min: 0 },
+  { id: "n_tokens_max",  titleKey: "metrics.n_tokens_max",
+    metric: "llamacpp:n_tokens_max",             unit: "tok",   min: 0 },
+  { id: "prompt_total",  titleKey: "metrics.prompt_total",
+    metric: "llamacpp:prompt_tokens_total",      unit: "tok",   min: 0, cumulative: true },
+  { id: "predicted_total", titleKey: "metrics.predicted_total",
+    metric: "llamacpp:tokens_predicted_total",   unit: "tok",   min: 0, cumulative: true },
+];
+
+function fmtNumber(n, opts) {
+  if (n === undefined || n === null || !isFinite(n)) return "—";
+  const o = opts || {};
+  if (o.percent) return (n * 100).toFixed(n < 0.1 ? 2 : 1);
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + "G";
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(2) + "k";
+  if (Number.isInteger(n)) return String(n);
+  if (n >= 100) return n.toFixed(0);
+  if (n >= 10)  return n.toFixed(1);
+  return n.toFixed(2);
+}
+
+function ensureMetricCards() {
+  const sec = $("#metrics-section");
+  if (sec.dataset.built === "1") return;
+  sec.dataset.built = "1";
+  sec.innerHTML = "";
+  for (const c of METRIC_CARDS) {
+    const card = el("div", { class: "card metric-card", id: "metric-" + c.id }, [
+      el("h2", null, t(c.titleKey)),
+      el("div", { class: "row" }, [
+        el("div", { class: "value", id: "metric-" + c.id + "-value" }, "—"),
+        el("div", { class: "unit" }, c.unit || ""),
+      ]),
+      c.percent
+        ? el("div", { class: "pct-bar", id: "metric-" + c.id + "-bar" },
+            el("span", { style: "width: 0%" }))
+        : null,
+      el("div", { class: "spark", id: "metric-" + c.id + "-spark" }),
+    ]);
+    sec.appendChild(card);
+  }
+}
+
+function renderMetricsDisabled() {
+  ensureMetricCards();
+  for (const c of METRIC_CARDS) {
+    const card = $("#metric-" + c.id);
+    if (!card) continue;
+    card.classList.add("disabled");
+    $("#metric-" + c.id + "-value").textContent = "—";
+    $("#metric-" + c.id + "-spark").innerHTML = "";
+  }
+  showBanner("metrics-disabled", t("error.metrics_disabled"), "warn");
+}
+
+function renderMetrics(parsed) {
+  ensureMetricCards();
+  clearBanner("metrics-disabled");
+  for (const c of METRIC_CARDS) {
+    const v = parsed[c.metric];
+    pushHistory(c.id, isFinite(v) ? v : 0);
+
+    const card = $("#metric-" + c.id);
+    card.classList.remove("warn", "bad", "disabled");
+    if (c.warnAt !== undefined && v >= c.warnAt) card.classList.add("warn");
+    if (c.badAt  !== undefined && v >= c.badAt)  { card.classList.remove("warn"); card.classList.add("bad"); }
+
+    $("#metric-" + c.id + "-value").textContent =
+      fmtNumber(v, { percent: c.percent });
+
+    if (c.percent) {
+      const bar = $("#metric-" + c.id + "-bar");
+      const span = bar.querySelector("span");
+      const pct = Math.max(0, Math.min(100, (v || 0) * 100));
+      span.style.width = pct.toFixed(1) + "%";
+      bar.classList.remove("warn", "bad");
+      if (c.warnAt !== undefined && v >= c.warnAt) bar.classList.add("warn");
+      if (c.badAt  !== undefined && v >= c.badAt)  { bar.classList.remove("warn"); bar.classList.add("bad"); }
+    }
+
+    const sparkHost = $("#metric-" + c.id + "-spark");
+    sparkHost.innerHTML = "";
+    sparkHost.appendChild(sparkline(histories[c.id], {
+      min: c.min !== undefined ? c.min : undefined,
+      max: c.max !== undefined ? c.max : undefined,
+    }));
+  }
+  state.metrics = parsed;
+  state.lastUpdate = Date.now();
+}
+
+/* Boot wiring → start the metrics poller. */
 function startCorePollers() {
-  /* placeholder — Phase 3 wires /metrics + /slots pollers here */
+  stopAllPollers();
+  ensureMetricCards();
+
+  startPoller("metrics", state.params.poll, async () => {
+    try {
+      const txt = await fetchText("/metrics", { withModel: true, timeout: 6000 });
+      const parsed = parsePrometheus(txt);
+      renderMetrics(parsed);
+    } catch (e) {
+      if (e.status === 404 || e.status === 501) {
+        renderMetricsDisabled();
+      } else {
+        throw e;
+      }
+    }
+  });
 }
 
 document.addEventListener("DOMContentLoaded", boot);

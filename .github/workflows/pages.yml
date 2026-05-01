@@ -10,7 +10,9 @@ name: Deploy demo to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - claude/llama-monitoring-dashboard-2RHay
   workflow_dispatch:
 
 permissions:

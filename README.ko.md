@@ -25,6 +25,8 @@
 ![대시보드 (한국어)](docs/screenshots/main-ko.png)
 ![슬롯 상세](docs/screenshots/slots-open.png)
 ![모바일 화면](docs/screenshots/mobile.png)
+![채팅 패널](docs/screenshots/chat-panel.png)
+![데모 모드](docs/screenshots/demo-mode.png)
 
 ## 표시되는 정보
 

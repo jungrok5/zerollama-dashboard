@@ -24,6 +24,8 @@
 ![仪表盘 (韩文)](docs/screenshots/main-ko.png)
 ![槽位详情](docs/screenshots/slots-open.png)
 ![移动端视图](docs/screenshots/mobile.png)
+![聊天面板](docs/screenshots/chat-panel.png)
+![演示模式](docs/screenshots/demo-mode.png)
 
 ## 显示什么
 

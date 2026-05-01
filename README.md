@@ -26,6 +26,8 @@ see [Deploying the demo](#deploying-the-demo) below).
 ![dashboard (Korean)](docs/screenshots/main-ko.png)
 ![slot details](docs/screenshots/slots-open.png)
 ![mobile view](docs/screenshots/mobile.png)
+![chat panel](docs/screenshots/chat-panel.png)
+![demo mode](docs/screenshots/demo-mode.png)
 
 ## What it shows
 

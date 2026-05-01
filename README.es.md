@@ -26,6 +26,8 @@ Esto permite desplegar el proyecto como sitio estático sin backend
 ![panel (coreano)](docs/screenshots/main-ko.png)
 ![detalle de slots](docs/screenshots/slots-open.png)
 ![vista móvil](docs/screenshots/mobile.png)
+![panel de chat](docs/screenshots/chat-panel.png)
+![modo demo](docs/screenshots/demo-mode.png)
 
 ## Qué muestra
 

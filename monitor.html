@@ -498,17 +498,264 @@ function clearBanner(id) {
 function cssEscape(s) { return String(s).replace(/[^\w-]/g, "_"); }
 
 /* ──────────────────────────────────────────────────────────────────────
- *  Boot — Phase 2 will plug the polling engine and endpoint discovery
- *  into this. Phase 1 only wires the visible scaffold.
+ *  Networking — every fetch is wrapped, surfaces an error if it fails,
+ *  and is abortable so we can cancel in flight when the page unloads
+ *  or the model selection changes.
  * ──────────────────────────────────────────────────────────────────── */
-function boot() {
+function endpoint(path, withModel) {
+  const base = state.serverBase.replace(/\/+$/, "");
+  let url = base + path;
+  if (withModel && state.mode === "router" && state.selectedModel) {
+    const sep = url.includes("?") ? "&" : "?";
+    url += sep + "model=" + encodeURIComponent(state.selectedModel);
+  }
+  return url;
+}
+
+async function fetchJSON(path, opts) {
+  return fetchEndpoint(path, opts, "json");
+}
+async function fetchText(path, opts) {
+  return fetchEndpoint(path, opts, "text");
+}
+async function fetchEndpoint(path, opts, kind) {
+  const o = opts || {};
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), o.timeout || 8000);
+  try {
+    const res = await fetch(endpoint(path, o.withModel !== false), {
+      method: o.method || "GET",
+      headers: Object.assign(
+        { "Accept": kind === "json" ? "application/json" : "text/plain" },
+        o.headers || {}
+      ),
+      body: o.body,
+      signal: o.signal || ctrl.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      const errBody = await safeReadBody(res);
+      const e = new Error("HTTP " + res.status + (errBody ? " — " + errBody.slice(0, 200) : ""));
+      e.status = res.status;
+      e.body = errBody;
+      throw e;
+    }
+    if (kind === "json") return await res.json();
+    if (kind === "text") return await res.text();
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === "AbortError") {
+      const ae = new Error("aborted"); ae.aborted = true; throw ae;
+    }
+    throw e;
+  }
+}
+async function safeReadBody(res) {
+  try { return await res.text(); } catch (_) { return ""; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Polling engine. setTimeout chain with backoff + AbortController.
+ *  Never setInterval — that allows requests to stack when the server
+ *  is slow.
+ * ──────────────────────────────────────────────────────────────────── */
+function startPoller(name, intervalMs, taskFn) {
+  let timer = null;
+  let aborter = null;
+  let stopped = false;
+  let backoff = 0;       /* extra ms added on consecutive failures */
+  const MAX_BACKOFF = 10_000;
+
+  async function tick() {
+    if (stopped) return;
+    if (state.paused) {
+      timer = setTimeout(tick, intervalMs);
+      return;
+    }
+    aborter = new AbortController();
+    try {
+      await taskFn(aborter.signal);
+      backoff = 0;
+      clearBanner("poll-" + name);
+    } catch (e) {
+      if (e.aborted || e.name === "AbortError") {
+        /* swallowed */
+      } else {
+        backoff = Math.min(MAX_BACKOFF, Math.max(1000, backoff ? backoff * 2 : 1000));
+        showBanner(
+          "poll-" + name,
+          name + ": " + (e.message || t("error.fetch_failed")),
+          "warn"
+        );
+      }
+    }
+    if (!stopped) timer = setTimeout(tick, intervalMs + backoff);
+  }
+
+  const handle = {
+    name,
+    stop() {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      if (aborter) try { aborter.abort(); } catch (_) {}
+    },
+  };
+  state.pollers.push(handle);
+  /* fire first tick on next microtask to avoid stacking inside boot() */
+  Promise.resolve().then(tick);
+  return handle;
+}
+
+function stopAllPollers() {
+  for (const p of state.pollers) p.stop();
+  state.pollers = [];
+}
+
+/* Pause / resume hook for keyboard shortcut (Phase 9). */
+function setPaused(v) {
+  state.paused = !!v;
+  setStatus(state.paused ? "warn" : (state.lastUpdate ? "online" : "connecting"),
+            state.paused ? "common.pause" : "header.status.online");
+}
+
+/* When the tab is hidden, abort in-flight requests and pause —
+ * resume on visibility. Cheap battery / server-load saver. */
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) setPaused(true);
+  else setPaused(false);
+});
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Boot sequence. Discovers single-model vs router mode, picks the
+ *  active model in router mode, and hands control to the poller setup
+ *  function (defined in later phases). Phase 2 only verifies wiring.
+ * ──────────────────────────────────────────────────────────────────── */
+async function boot() {
   initHeader();
+  ensureRootScaffold();
   setStatus("connecting", "header.status.connecting");
-  /* Placeholder — replaced in Phase 2. */
-  $("#root").innerHTML = "";
-  $("#root").appendChild(
-    el("div", { class: "empty-hint", "data-i18n": "boot.preparing" }, t("boot.preparing"))
-  );
+
+  if (state.params.server && state.serverBase === window.location.origin
+      && state.params.server !== window.location.origin) {
+    /* deriveServerBase fell back; show the user. */
+    showBanner("bad-url", t("error.bad_url") + ": " + state.params.server, "warn");
+  }
+
+  try {
+    /* /health is the cheapest probe and works even when no model is loaded */
+    await fetchJSON("/health", { withModel: false, timeout: 4000 });
+  } catch (e) {
+    setStatus("offline", "header.status.offline");
+    showBanner("boot-health", t("error.fetch_failed") + ": /health — " + e.message, "warn");
+    /* Continue anyway — some setups disable /health, and we still want
+     * to attempt /props so the user sees what's reachable. */
+  }
+
+  /* /props is required — we use it to drive the rest of the UI */
+  let props = null;
+  try {
+    props = await fetchJSON("/props", { withModel: false, timeout: 6000 });
+    state.props = props;
+    clearBanner("boot-props");
+  } catch (e) {
+    setStatus("error", "header.status.error");
+    showBanner("boot-props", "/props — " + e.message);
+  }
+
+  /* /v1/models — universal across modes. May be empty in router mode
+   * before any model is loaded. */
+  try {
+    const v1 = await fetchJSON("/v1/models", { withModel: false, timeout: 6000 });
+    state.v1models = (v1 && Array.isArray(v1.data)) ? v1.data : [];
+  } catch (e) {
+    state.v1models = [];
+    /* not fatal */
+  }
+
+  /* Router-mode detection: GET /models. If it returns 200 with a list of
+   * objects whose status has a 'value' field, this is router mode.
+   * 404 / not-array / wrong shape → single mode. */
+  state.mode = "single";
+  state.models = [];
+  try {
+    const m = await fetchJSON("/models", { withModel: false, timeout: 6000 });
+    /* router payload shape: { data: [...] } or just an array, depending on build */
+    const list = Array.isArray(m) ? m
+                 : (m && Array.isArray(m.data) ? m.data
+                 : (m && Array.isArray(m.models) ? m.models : null));
+    if (list && list.length && typeof list[0] === "object"
+        && list[0] && list[0].status && typeof list[0].status === "object"
+        && "value" in list[0].status) {
+      state.mode = "router";
+      state.models = list;
+    }
+  } catch (_e) { /* not router */ }
+
+  /* If router and no explicit ?model=, pick the first loaded model, else
+   * the first listed model. */
+  if (state.mode === "router") {
+    if (!state.selectedModel) {
+      const loaded = state.models.find((x) => x.status && x.status.value === "loaded");
+      const first  = state.models[0];
+      state.selectedModel = (loaded && loaded.id) || (first && first.id) || null;
+    }
+  } else {
+    state.selectedModel = null;
+  }
+
+  state.ui.bootDone = true;
+  state.lastUpdate = Date.now();
+  setStatus("online", "header.status.online");
+
+  renderBootSummary();
+  startCorePollers();
+}
+
+/* Bare minimum scaffold so later phases have stable mount points to
+ * write into. Each phase adds detail to one of these slots. */
+function ensureRootScaffold() {
+  const root = $("#root");
+  root.innerHTML = "";
+  root.appendChild(el("div", { id: "metrics-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "slots-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "models-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "config-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "lora-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "log-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "guidance-section", class: "full",
+                               style: "display: contents;" }));
+}
+
+/* Render a small "boot summary" placeholder — overwritten by later phases
+ * as their cards come online. Shows that boot succeeded. */
+function renderBootSummary() {
+  const sec = $("#models-section");
+  sec.innerHTML = "";
+  const mode = state.mode === "router" ? "router (multi-model)" : "single";
+  const card = el("div", { class: "card" }, [
+    el("h2", null, t("models.title")),
+    el("div", { class: "sub" }, "Mode: " + mode),
+    el("div", { class: "sub" }, "Server: " + state.serverBase),
+    state.mode === "router"
+      ? el("div", { class: "sub" }, "Models: " + state.models.length
+            + (state.selectedModel ? " — active: " + state.selectedModel : ""))
+      : el("div", { class: "sub" }, state.props && state.props.model_path
+            ? "model_path: " + state.props.model_path : t("common.unknown")),
+  ]);
+  sec.appendChild(card);
+}
+
+/* Phase 3+ replace this. Phase 2 stub starts no pollers. */
+function startCorePollers() {
+  /* placeholder — Phase 3 wires /metrics + /slots pollers here */
 }
 
 document.addEventListener("DOMContentLoaded", boot);

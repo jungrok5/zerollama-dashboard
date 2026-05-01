@@ -17,8 +17,8 @@
 
 ## 显示什么
 
-- 实时 `/metrics` (Prometheus): 生成 / 提示 tok/s,KV 缓存使用率,
-  处理中 / 排队请求,累计计数
+- 实时 `/metrics` (Prometheus): 生成 / 提示 tok/s,处理中 / 排队请求,
+  每次解码繁忙槽位数,提示与生成累计计数
 - `/slots`: 每个槽位的状态与全部采样参数
   (temperature, top_k, top_p, min_p, repeat_penalty, mirostat, DRY 等)
 - `/props` + `/v1/models`: 模型元数据 (vocab, context, embedding 维度,
@@ -29,8 +29,9 @@
   CLI 参数**
 - 可选 `server.log` tail (HTTP Range,自动检测; 不可用时自动隐藏)
 - **内联引导**: 每个卡片右上角的 ⓘ 工具提示解释相关参数,当状态超出
-  阈值时给出建议 (例如「KV 缓存 96% — 考虑提高 `--ctx-size` 或降低
-  `--parallel`」)
+  阈值时给出建议
+- **内置聊天面板**: 流式 `POST /v1/chat/completions`、系统提示词、
+  参数滑块、停止按钮,以及用于槽位压力测试的并发分发模式(详见下方)
 
 ## 快速开始
 
@@ -73,8 +74,26 @@ llama-server --models-dir ./models --metrics --port 8080
 | `poll` | `1000` | 轮询间隔 (ms) |
 | `log` | auto | 日志文件路径; 未指定则自动检测,不可达时隐藏面板 |
 | `lang` | auto | `en` / `ko` / `ja` / `zh-CN` / `es` (来自浏览器) |
+| `prompt` | (无) | 预填聊天输入框(不会自动发送) |
 
 设置全部存于 URL — 不使用 localStorage。分享链接 = 同一视图。
+
+## 聊天面板
+
+槽位网格与模型卡片之间有一个可折叠的聊天面板。它与你正在监控的同一个
+llama-server 通信,因此可以发送提示并实时观察指标的反应。
+
+- **流式输出**: 来自 `/v1/chat/completions` 的 SSE,token 边到边显示。
+  停止按钮可中止进行中的流。
+- **Markdown 渲染**: 标题、段落、**加粗**、*斜体*、行内 `code`、代码块、
+  有序 / 无序列表、表格 (GFM)、引用、水平线,以及 `[text](https://…)`
+  链接。无外部库 — 渲染器使用 `textContent` 直接构建 DOM 节点,
+  服务端响应无法注入 HTML 或脚本。
+- **系统提示词**: 可选。作为 `role: "system"` 在历史前发送。
+- **滑块**: `temperature`、`top_p`、`max_tokens`,以及将同一提示同时
+  发送给 N 个槽位的并发分发(1–8) — 用于快速饱和测试。
+- **不持久化**: 项目规则不允许 localStorage,刷新页面会清空对话。
+  使用 `?prompt=…` 从 URL 预置初始消息。
 
 ## 可选: 日志 tail
 
@@ -104,7 +123,7 @@ llama-server --models-dir ./models --metrics --port 8080
 
 | 信号 | 阈值 | 建议 |
 |---|---|---|
-| KV 缓存使用率 | > 90% 持续 | 提高 `--ctx-size`,降低 `--parallel`,或启用 `--ctx-shift` |
+| 每次解码繁忙槽位 | 持续 ≥ total_slots 的 90% | 提高 `--parallel` 或降低客户端并发 |
 | 排队请求 | > 0 持续 | 提高 `--parallel` 或降低客户端并发 |
 | 生成 tok/s 低 + 槽位空闲 | — | 提高 `--n-gpu-layers` |
 | `is_sleeping` true | — | 下次请求会重新加载模型 — 调整 `--sleep-idle-seconds` |

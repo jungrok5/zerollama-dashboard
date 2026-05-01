@@ -17,8 +17,8 @@
 
 ## 표시되는 정보
 
-- 실시간 `/metrics` (Prometheus): 생성/프롬프트 tok/s, KV 캐시 사용률,
-  처리/대기 요청 수, 누계 카운터
+- 실시간 `/metrics` (Prometheus): 생성/프롬프트 tok/s, 처리/대기 요청 수,
+  디코드당 busy 슬롯, 프롬프트·생성 누계 카운터
 - `/slots`: 슬롯별 상태 + 전체 샘플링 파라미터
   (temperature, top_k, top_p, min_p, repeat_penalty, mirostat, DRY 등)
 - `/props` + `/v1/models`: 모델 메타데이터 (vocab, context, embedding
@@ -29,8 +29,10 @@
   CLI 인수**
 - 옵션 `server.log` tail (HTTP Range, 자동 감지; 사용 불가 시 자동 숨김)
 - **인라인 가이던스**: 각 카드의 ⓘ 툴팁이 해당 파라미터를 설명하고,
-  상태가 임계치를 넘을 때 권장 조치를 제시 (예: "KV 캐시 96% — 
-  `--ctx-size`를 늘리거나 `--parallel`을 줄이세요")
+  상태가 임계치를 넘을 때 권장 조치를 제시
+- **내장 채팅 패널**: `POST /v1/chat/completions` 스트리밍, 시스템
+  프롬프트, 파라미터 슬라이더, 중지 버튼, 슬롯 스트레스 테스트용 병렬
+  fan-out 모드 (아래 참조)
 
 ## 빠른 시작
 
@@ -74,8 +76,27 @@ llama-server --models-dir ./models --metrics --port 8080
 | `poll` | `1000` | 폴링 간격 (ms) |
 | `log` | auto | 로그 파일 경로; 미지정 시 자동 감지, 접근 불가 시 패널 숨김 |
 | `lang` | auto | `en` / `ko` / `ja` / `zh-CN` / `es` (브라우저 기본값) |
+| `prompt` | (없음) | 채팅 입력칸을 미리 채움 (자동 전송 안 함) |
 
 설정은 모두 URL에만 있음 — localStorage 없음. 링크 공유 = 동일 화면.
+
+## 채팅 패널
+
+슬롯 그리드와 모델 카드 사이에 접을 수 있는 채팅 패널이 있어요. 모니터링
+중인 같은 llama-server를 호출하니까, 프롬프트를 보내고 메트릭이 어떻게
+반응하는지 실시간으로 볼 수 있어요.
+
+- **스트리밍**: `/v1/chat/completions`의 SSE를 받아 토큰 단위로 표시.
+  중지 버튼은 진행 중인 스트림을 abort.
+- **마크다운 렌더링**: 헤딩, 단락, **볼드**, *이탤릭*, 인라인 `code`,
+  코드 블록, 순서/비순서 리스트, 표(GFM), 인용, 수평선,
+  `[text](https://…)` 링크 지원. 외부 라이브러리 없이 모든 텍스트는
+  `textContent`로 들어가서 서버 응답이 HTML/스크립트를 주입할 수 없어요.
+- **시스템 프롬프트**: 선택. `role: "system"`으로 히스토리 앞에 전송.
+- **슬라이더**: `temperature`, `top_p`, `max_tokens`, 그리고 같은
+  프롬프트를 N 슬롯에 동시 발사하는 병렬 fan-out (1–8) — 빠른 포화 테스트.
+- **저장 안 됨**: 프로젝트 규칙상 localStorage가 없어서 새로고침하면
+  대화가 사라져요. URL로 시작 메시지를 건네려면 `?prompt=…` 사용.
 
 ## 옵션: 로그 tail
 
@@ -105,7 +126,7 @@ llama-server --models-dir ./models --metrics --port 8080
 
 | 신호 | 임계 | 권장 |
 |---|---|---|
-| KV 캐시 사용률 | > 90% 지속 | `--ctx-size` 증가, `--parallel` 감소, 또는 `--ctx-shift` 활성화 |
+| 디코드당 busy 슬롯 | total_slots의 90% 이상 지속 | `--parallel` 증가 또는 클라이언트 동시성 감소 |
 | 대기 요청 | > 0 지속 | `--parallel` 증가 또는 클라이언트 동시성 감소 |
 | 생성 tok/s 낮음 + 슬롯 idle | — | `--n-gpu-layers` 증가 |
 | `is_sleeping` true | — | 다음 요청은 모델 재로딩 — `--sleep-idle-seconds` 조정 |

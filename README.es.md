@@ -17,8 +17,9 @@ servidores [llama.cpp](https://github.com/ggml-org/llama.cpp).
 
 ## Qué muestra
 
-- `/metrics` en vivo (Prometheus): tok/s de generación / prompt, uso de
-  caché KV, peticiones en proceso / encoladas, contadores acumulados
+- `/metrics` en vivo (Prometheus): tok/s de generación / prompt,
+  peticiones en proceso / encoladas, slots ocupados por decode,
+  contadores acumulados de prompt y generación
 - `/slots`: estado por slot con todos los parámetros de muestreo
   (temperature, top_k, top_p, min_p, repeat_penalty, mirostat, DRY, etc.)
 - `/props` + `/v1/models`: metadatos del modelo (vocab/contexto/embedding,
@@ -31,8 +32,10 @@ servidores [llama.cpp](https://github.com/ggml-org/llama.cpp).
   está disponible)
 - **Guía en línea**: cada tarjeta lleva un tooltip ⓘ que explica el
   parámetro subyacente; aparecen sugerencias cuando el estado cruza
-  umbrales (p.ej. "caché KV 96% — sube `--ctx-size` o baja
-  `--parallel`")
+  umbrales
+- **Panel de chat integrado**: streaming de `POST /v1/chat/completions`,
+  prompt de sistema, sliders de parámetros, botón de cancelar y modo
+  fan-out paralelo para pruebas de saturación de slots (más abajo)
 
 ## Inicio rápido
 
@@ -76,9 +79,34 @@ Aparece un selector de modelo en la cabecera.
 | `poll` | `1000` | intervalo de polling (ms) |
 | `log` | auto | ruta del log; autodetectado si no se especifica, panel oculto si no es accesible |
 | `lang` | auto | `en` / `ko` / `ja` / `zh-CN` / `es` (por defecto desde el navegador) |
+| `prompt` | (ninguno) | rellena el campo del chat al cargar (no envía automáticamente) |
 
 Los ajustes viven solo en la URL — sin localStorage. Comparte un enlace,
 obtén la misma vista.
+
+## Panel de chat
+
+Entre la grilla de slots y la tarjeta del modelo hay un panel de chat
+plegable. Habla con el mismo llama-server que estás monitorizando, así
+que puedes lanzar un prompt y ver cómo reaccionan las métricas en tiempo
+real.
+
+- **Streaming**: SSE desde `/v1/chat/completions`; los tokens aparecen
+  según llegan. El botón de detener aborta el stream activo.
+- **Renderizado Markdown**: encabezados, párrafos, **negrita**,
+  *cursiva*, `code` en línea, bloques de código, listas ordenadas /
+  no ordenadas, tablas (GFM), citas, líneas horizontales, y enlaces
+  `[texto](https://…)`. Sin librería externa: el renderizador construye
+  nodos DOM directamente con `textContent`, así la salida del servidor
+  no puede inyectar HTML ni scripts.
+- **Prompt de sistema**: opcional. Se envía como `role: "system"` antes
+  del historial.
+- **Sliders**: `temperature`, `top_p`, `max_tokens` y un fan-out
+  paralelo (1–8) que dispara el mismo prompt a N slots simultáneamente
+  para una prueba rápida de saturación.
+- **Sin persistencia**: por regla del proyecto no hay localStorage, así
+  que recargar la página borra la conversación. Usa `?prompt=…` para
+  prerellenar la entrada desde la URL.
 
 ## Opcional: tail de logs
 
@@ -110,7 +138,7 @@ ruta con `?log=path/to/file`. Desactívalo explícitamente con `?log=`.
 
 | Señal | Umbral | Sugerencia |
 |---|---|---|
-| Uso de caché KV | > 90% sostenido | Sube `--ctx-size`, baja `--parallel` o activa `--ctx-shift` |
+| Slots ocupados / decode | ≥ 90% de total_slots sostenido | Sube `--parallel` o reduce la concurrencia del cliente |
 | Peticiones encoladas | > 0 sostenido | Sube `--parallel` o baja la concurrencia del cliente |
 | tok/s bajo + slots inactivos | — | Aumenta `--n-gpu-layers` |
 | `is_sleeping` true | — | La próxima petición recargará el modelo — ajusta `--sleep-idle-seconds` |

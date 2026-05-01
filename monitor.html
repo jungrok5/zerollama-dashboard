@@ -342,6 +342,150 @@
     main { padding: 10px; gap: 10px; }
     .card .value { font-size: 22px; }
   }
+
+  /* chat */
+  .chat-card { padding: 0; overflow: hidden; }
+  .chat-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none;
+  }
+  .chat-head h2 { margin: 0; font-size: 13px; letter-spacing: 0.5px;
+                  color: var(--fg-dim); text-transform: uppercase; }
+  .chat-head .pill {
+    font-size: 11px; padding: 1px 7px; border-radius: 999px;
+    background: var(--bg-3); color: var(--fg-dim); border: 1px solid var(--border);
+  }
+  .chat-head .grow { flex: 1; }
+  .chat-body {
+    display: grid; grid-template-columns: 1fr 280px; gap: 0;
+    min-height: 360px; max-height: 75vh;
+  }
+  .chat-body[hidden] { display: none; }
+  .chat-main {
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  .chat-side {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 10px 12px; overflow: auto;
+    background: var(--bg-2);
+  }
+  .chat-side label {
+    font-size: 11px; color: var(--fg-mute);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .chat-side input[type="range"] { width: 100%; }
+  .chat-side .row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 6px; align-items: center;
+  }
+  .chat-side .row .v {
+    font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+    min-width: 36px; text-align: right;
+  }
+  .chat-side textarea {
+    font: inherit; color: inherit;
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; resize: vertical;
+    min-height: 60px;
+  }
+  .chat-msgs {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 14px;
+    scroll-behavior: smooth;
+  }
+  .chat-msg { display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+  .chat-msg .who {
+    font-size: 11px; color: var(--fg-mute);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .chat-msg.user .who { color: var(--accent-2); }
+  .chat-msg.assistant .who { color: var(--good); }
+  .chat-msg .body {
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px;
+    word-wrap: break-word; overflow-wrap: break-word;
+  }
+  .chat-msg.user .body { background: #14202e; border-color: #2a425d; }
+  .chat-msg .stats {
+    font-family: var(--mono); font-size: 11px; color: var(--fg-mute);
+  }
+  .chat-msg .body > *:first-child { margin-top: 0; }
+  .chat-msg .body > *:last-child { margin-bottom: 0; }
+  .chat-msg .body p { margin: 6px 0; }
+  .chat-msg .body h1, .chat-msg .body h2, .chat-msg .body h3,
+  .chat-msg .body h4, .chat-msg .body h5, .chat-msg .body h6 {
+    margin: 12px 0 4px; line-height: 1.25;
+  }
+  .chat-msg .body h1 { font-size: 18px; }
+  .chat-msg .body h2 { font-size: 16px; }
+  .chat-msg .body h3 { font-size: 15px; }
+  .chat-msg .body h4, .chat-msg .body h5, .chat-msg .body h6 { font-size: 14px; }
+  .chat-msg .body code {
+    background: var(--bg-3); padding: 1px 5px; border-radius: 4px;
+    font-size: 12.5px;
+  }
+  .chat-msg .body pre {
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+    overflow-x: auto; margin: 6px 0;
+  }
+  .chat-msg .body pre code { background: transparent; padding: 0; font-size: 12px; }
+  .chat-msg .body ul, .chat-msg .body ol { margin: 6px 0; padding-left: 24px; }
+  .chat-msg .body li { margin: 2px 0; }
+  .chat-msg .body blockquote {
+    margin: 6px 0; padding: 4px 12px;
+    border-left: 3px solid var(--border); color: var(--fg-dim);
+  }
+  .chat-msg .body hr {
+    border: 0; border-top: 1px solid var(--border); margin: 10px 0;
+  }
+  .chat-msg .body table {
+    border-collapse: collapse; margin: 8px 0;
+    font-size: 12.5px;
+  }
+  .chat-msg .body th, .chat-msg .body td {
+    border: 1px solid var(--border); padding: 4px 8px; text-align: left;
+  }
+  .chat-msg .body th { background: var(--bg-3); }
+  .chat-msg .body a { color: var(--accent); }
+  .chat-msg .body strong { color: var(--fg); }
+  .chat-msg .body em { font-style: italic; }
+  .chat-input-row {
+    display: grid; grid-template-columns: 1fr auto auto;
+    gap: 8px; padding: 10px 12px;
+    border-top: 1px solid var(--border); background: var(--bg-2);
+  }
+  .chat-input-row textarea {
+    font: inherit; color: inherit;
+    background: var(--bg-3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px;
+    resize: none; min-height: 38px; max-height: 200px;
+  }
+  .chat-input-row button { white-space: nowrap; }
+  .chat-input-row button.primary {
+    background: #1d3a5c; border-color: #2f6db1; color: #cfe3ff;
+  }
+  .chat-input-row button.primary:hover { background: #234a76; }
+  .chat-input-row button.danger {
+    background: #3a1d1d; border-color: #6e2a2a; color: #ffd3cf;
+  }
+  .chat-empty {
+    color: var(--fg-mute); font-size: 12px; text-align: center;
+    padding: 30px 20px;
+  }
+  .chat-typing {
+    color: var(--fg-mute); font-size: 11px; font-family: var(--mono);
+  }
+  @media (max-width: 720px) {
+    .chat-body { grid-template-columns: 1fr; max-height: 90vh; }
+    .chat-side { border-top: 1px solid var(--border); border-right: none; }
+    .chat-main { border-right: none; }
+  }
 </style>
 </head>
 <body>
@@ -550,6 +694,29 @@ const I18N = {
     "rule.loading_long.explain":   "Loading > 60s usually means slow disk I/O, swapping, or VRAM pressure forcing partial offload.",
     "rule.loading_long.suggest":   "Check disk speed and free GPU memory; consider a smaller quantization.",
 
+    "chat.title":              "Chat",
+    "chat.expand":             "expand",
+    "chat.collapse":           "collapse",
+    "chat.empty":              "No messages yet — type below and press Enter to send.",
+    "chat.placeholder":        "Type a message — Enter to send, Shift+Enter for newline",
+    "chat.send":               "Send",
+    "chat.stop":               "Stop",
+    "chat.clear":              "Clear conversation",
+    "chat.system_prompt":      "System prompt",
+    "chat.system_placeholder": "Optional. Sets the assistant's behavior.",
+    "chat.temperature":        "Temperature",
+    "chat.top_p":              "Top-p",
+    "chat.max_tokens":         "Max tokens",
+    "chat.fanout":             "Parallel requests (stress test)",
+    "chat.you":                "You",
+    "chat.assistant":          "Assistant",
+    "chat.streaming":          "streaming…",
+    "chat.error":              "error",
+    "chat.cancelled":          "cancelled",
+    "chat.tok":                "tok",
+    "chat.tok_per_s":          "tok/s",
+    "chat.chars":              "chars",
+
     "footer.attribution":          "Inspired by abhiFSD/llama.cpp-Monitor-Dashboard (MIT)"
   },
   ko: {
@@ -695,6 +862,30 @@ const I18N = {
     "rule.loading_long.title":     "모델 로딩이 오래 걸림",
     "rule.loading_long.explain":   "로딩이 60초 이상 지속되면 보통 디스크 I/O 지연, 스왑, VRAM 부족으로 인한 부분 오프로드가 원인입니다.",
     "rule.loading_long.suggest":   "디스크 속도와 GPU 여유 메모리를 확인하고, 더 작은 양자화를 고려하세요.",
+
+    "chat.title":              "채팅",
+    "chat.expand":             "펼치기",
+    "chat.collapse":           "접기",
+    "chat.empty":              "아직 메시지 없음 — 아래에 입력 후 Enter로 전송",
+    "chat.placeholder":        "메시지 입력 — Enter로 전송, Shift+Enter로 줄바꿈",
+    "chat.send":               "보내기",
+    "chat.stop":               "중지",
+    "chat.clear":              "대화 비우기",
+    "chat.system_prompt":      "시스템 프롬프트",
+    "chat.system_placeholder": "선택. 어시스턴트의 동작을 지정합니다.",
+    "chat.temperature":        "Temperature",
+    "chat.top_p":              "Top-p",
+    "chat.max_tokens":         "최대 토큰",
+    "chat.fanout":             "병렬 요청 (스트레스 테스트)",
+    "chat.you":                "사용자",
+    "chat.assistant":          "어시스턴트",
+    "chat.streaming":          "스트리밍 중…",
+    "chat.error":              "오류",
+    "chat.cancelled":          "취소됨",
+    "chat.tok":                "tok",
+    "chat.tok_per_s":          "tok/s",
+    "chat.chars":              "글자",
+
     "footer.attribution": "abhiFSD/llama.cpp-Monitor-Dashboard (MIT)에서 영감을 받음"
   },
 
@@ -841,6 +1032,30 @@ const I18N = {
     "rule.loading_long.title":     "モデルのロードが長時間続いています",
     "rule.loading_long.explain":   "60 秒を超えるロードは、通常 ディスク I/O 遅延、スワップ、VRAM 圧迫による部分オフロードが原因です。",
     "rule.loading_long.suggest":   "ディスク速度と GPU 空きメモリを確認し、より小さい量子化を検討してください。",
+
+    "chat.title":              "チャット",
+    "chat.expand":             "展開",
+    "chat.collapse":           "折りたたむ",
+    "chat.empty":              "まだメッセージがありません — 下に入力して Enter で送信",
+    "chat.placeholder":        "メッセージを入力 — Enter で送信、Shift+Enter で改行",
+    "chat.send":               "送信",
+    "chat.stop":               "中止",
+    "chat.clear":              "会話をクリア",
+    "chat.system_prompt":      "システムプロンプト",
+    "chat.system_placeholder": "任意。アシスタントの動作を指定します。",
+    "chat.temperature":        "Temperature",
+    "chat.top_p":              "Top-p",
+    "chat.max_tokens":         "最大トークン",
+    "chat.fanout":             "並列リクエスト(負荷試験)",
+    "chat.you":                "ユーザー",
+    "chat.assistant":          "アシスタント",
+    "chat.streaming":          "ストリーミング中…",
+    "chat.error":              "エラー",
+    "chat.cancelled":          "中止しました",
+    "chat.tok":                "tok",
+    "chat.tok_per_s":          "tok/s",
+    "chat.chars":              "文字",
+
     "footer.attribution": "abhiFSD/llama.cpp-Monitor-Dashboard (MIT) にインスパイアされました"
   },
 
@@ -987,6 +1202,30 @@ const I18N = {
     "rule.loading_long.title":     "模型加载耗时过长",
     "rule.loading_long.explain":   "加载超过 60 秒,通常是磁盘 I/O 慢、内存交换或 VRAM 压力导致部分卸载。",
     "rule.loading_long.suggest":   "检查磁盘速度与 GPU 可用显存;考虑使用更小的量化。",
+
+    "chat.title":              "聊天",
+    "chat.expand":             "展开",
+    "chat.collapse":           "折叠",
+    "chat.empty":              "还没有消息 — 在下面输入并按 Enter 发送",
+    "chat.placeholder":        "输入消息 — Enter 发送,Shift+Enter 换行",
+    "chat.send":               "发送",
+    "chat.stop":               "停止",
+    "chat.clear":              "清空对话",
+    "chat.system_prompt":      "系统提示词",
+    "chat.system_placeholder": "可选。设定助手的行为。",
+    "chat.temperature":        "Temperature",
+    "chat.top_p":              "Top-p",
+    "chat.max_tokens":         "最大 token 数",
+    "chat.fanout":             "并发请求(压力测试)",
+    "chat.you":                "你",
+    "chat.assistant":          "助手",
+    "chat.streaming":          "流式输出中…",
+    "chat.error":              "错误",
+    "chat.cancelled":          "已取消",
+    "chat.tok":                "tok",
+    "chat.tok_per_s":          "tok/s",
+    "chat.chars":              "字符",
+
     "footer.attribution": "灵感来自 abhiFSD/llama.cpp-Monitor-Dashboard (MIT)"
   },
 
@@ -1133,6 +1372,30 @@ const I18N = {
     "rule.loading_long.title":     "El modelo lleva demasiado cargando",
     "rule.loading_long.explain":   "Cargas > 60s suelen significar I/O de disco lento, swap o presión de VRAM forzando offload parcial.",
     "rule.loading_long.suggest":   "Revisa la velocidad de disco y la memoria libre de la GPU; considera una cuantización menor.",
+
+    "chat.title":              "Chat",
+    "chat.expand":             "expandir",
+    "chat.collapse":           "contraer",
+    "chat.empty":              "Aún no hay mensajes — escribe abajo y pulsa Enter para enviar",
+    "chat.placeholder":        "Escribe un mensaje — Enter para enviar, Shift+Enter para nueva línea",
+    "chat.send":               "Enviar",
+    "chat.stop":               "Detener",
+    "chat.clear":              "Borrar conversación",
+    "chat.system_prompt":      "Prompt del sistema",
+    "chat.system_placeholder": "Opcional. Define el comportamiento del asistente.",
+    "chat.temperature":        "Temperatura",
+    "chat.top_p":              "Top-p",
+    "chat.max_tokens":         "Tokens máximos",
+    "chat.fanout":             "Peticiones paralelas (prueba de carga)",
+    "chat.you":                "Tú",
+    "chat.assistant":          "Asistente",
+    "chat.streaming":          "transmitiendo…",
+    "chat.error":              "error",
+    "chat.cancelled":          "cancelado",
+    "chat.tok":                "tok",
+    "chat.tok_per_s":          "tok/s",
+    "chat.chars":              "caracteres",
+
     "footer.attribution": "Inspirado en abhiFSD/llama.cpp-Monitor-Dashboard (MIT)"
   }
 };
@@ -1161,6 +1424,7 @@ function parseParams() {
     poll:   clampInt(q.get("poll"), 1000, 200, 60_000),
     log:    q.has("log") ? q.get("log") : null,   /* null = auto-detect */
     lang:   (q.get("lang") || "").trim(),
+    prompt: q.get("prompt") || "",                /* prefill chat input */
   };
 }
 function clampInt(s, fallback, min, max) {
@@ -1525,6 +1789,7 @@ async function boot() {
   if (state.props) setStatus("online", "header.status.online");
 
   renderBootSummary();
+  renderChatPanel();
   renderGuidance();
   startCorePollers();
   startSecondaryPollers();
@@ -1540,6 +1805,8 @@ function ensureRootScaffold() {
   root.appendChild(el("div", { id: "metrics-section", class: "full",
                                style: "display: contents;" }));
   root.appendChild(el("div", { id: "slots-section", class: "full",
+                               style: "display: contents;" }));
+  root.appendChild(el("div", { id: "chat-section", class: "full",
                                style: "display: contents;" }));
   root.appendChild(el("div", { id: "models-section", class: "full",
                                style: "display: contents;" }));
@@ -2844,6 +3111,607 @@ function tickLastUpdate() {
 setInterval(tickLastUpdate, 1000);
 /* one allowed setInterval — read-only DOM update, no fetch involved,
  * so the "no setInterval for fetches" rule still holds. */
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Chat panel — calls POST /v1/chat/completions with streaming SSE.
+ *
+ *  Design notes:
+ *  - History lives only in this module's `chat` state object. There is
+ *    no localStorage by project rule, so reloads wipe the conversation.
+ *  - The markdown renderer below builds DOM directly (createElement +
+ *    textContent). User and server text are NEVER inserted via
+ *    innerHTML — every visible string goes through textContent.
+ *  - Streaming uses fetch + ReadableStream; AbortController lets the
+ *    user cancel a generation mid-flight.
+ * ──────────────────────────────────────────────────────────────────── */
+const chat = {
+  open: false,
+  messages: [],          /* {role, content, stats?} */
+  systemPrompt: "",
+  inflight: null,        /* AbortController */
+  params: { temperature: 0.7, top_p: 0.95, max_tokens: 512, fanout: 1 },
+};
+
+/* ── Markdown → DOM renderer ────────────────────────────────────────── */
+/* Block grammar handled: ATX headings, fenced code, GFM tables, lists
+ * (-, *, +, 1.), blockquotes, horizontal rules, paragraphs.
+ * Inline grammar: code spans, bold, italic, links (http(s) only). */
+function renderMarkdown(src) {
+  const frag = document.createDocumentFragment();
+  const lines = String(src).split(/\r?\n/);
+  let i = 0;
+
+  const isHr = (l) => /^ {0,3}([-*_])(\s*\1){2,}\s*$/.test(l);
+  const isBlank = (l) => /^\s*$/.test(l);
+
+  while (i < lines.length) {
+    let line = lines[i];
+
+    /* skip blanks */
+    if (isBlank(line)) { i++; continue; }
+
+    /* fenced code block */
+    let m = line.match(/^ {0,3}(```|~~~)(.*)$/);
+    if (m) {
+      const fence = m[1];
+      const lang = m[2].trim();
+      const buf = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith(fence)) {
+        buf.push(lines[i]); i++;
+      }
+      if (i < lines.length) i++; /* skip closing fence */
+      const pre = el("pre");
+      const code = el("code", lang ? { class: "lang-" + lang.replace(/[^\w-]/g, "") } : null);
+      code.textContent = buf.join("\n");
+      pre.appendChild(code);
+      frag.appendChild(pre);
+      continue;
+    }
+
+    /* horizontal rule */
+    if (isHr(line)) { frag.appendChild(el("hr")); i++; continue; }
+
+    /* ATX heading */
+    m = line.match(/^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$/);
+    if (m) {
+      const h = el("h" + m[1].length);
+      renderInlineInto(m[2], h);
+      frag.appendChild(h);
+      i++;
+      continue;
+    }
+
+    /* table — needs a delimiter row immediately after a pipe-row */
+    if (line.includes("|") && i + 1 < lines.length &&
+        /^ {0,3}\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(lines[i + 1])) {
+      const headers = splitTableRow(line);
+      const aligns = splitTableRow(lines[i + 1]).map((c) => {
+        const left = /^:/.test(c.trim()), right = /:$/.test(c.trim());
+        if (left && right) return "center";
+        if (right) return "right";
+        if (left) return "left";
+        return null;
+      });
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes("|") && !isBlank(lines[i])) {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      const table = el("table");
+      const thead = el("thead");
+      const trh = el("tr");
+      headers.forEach((h, idx) => {
+        const th = el("th", aligns[idx] ? { style: "text-align:" + aligns[idx] } : null);
+        renderInlineInto(h, th);
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh); table.appendChild(thead);
+      const tbody = el("tbody");
+      for (const r of rows) {
+        const tr = el("tr");
+        for (let idx = 0; idx < headers.length; idx++) {
+          const td = el("td", aligns[idx] ? { style: "text-align:" + aligns[idx] } : null);
+          renderInlineInto(r[idx] || "", td);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      frag.appendChild(table);
+      continue;
+    }
+
+    /* blockquote */
+    if (/^ {0,3}>/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^ {0,3}>/.test(lines[i])) {
+        buf.push(lines[i].replace(/^ {0,3}>\s?/, ""));
+        i++;
+      }
+      const bq = el("blockquote");
+      const inner = renderMarkdown(buf.join("\n"));
+      bq.appendChild(inner);
+      frag.appendChild(bq);
+      continue;
+    }
+
+    /* list */
+    const liMatch = line.match(/^ {0,3}([-*+]|\d+\.)\s+(.*)$/);
+    if (liMatch) {
+      const ordered = /\d+\./.test(liMatch[1]);
+      const list = el(ordered ? "ol" : "ul");
+      while (i < lines.length) {
+        const lm = lines[i].match(/^ {0,3}([-*+]|\d+\.)\s+(.*)$/);
+        if (!lm) break;
+        const buf = [lm[2]];
+        i++;
+        while (i < lines.length &&
+               !isBlank(lines[i]) &&
+               !/^ {0,3}([-*+]|\d+\.)\s+/.test(lines[i]) &&
+               !/^ {0,3}#{1,6}\s/.test(lines[i]) &&
+               !/^ {0,3}(```|~~~)/.test(lines[i])) {
+          buf.push(lines[i].replace(/^ {1,4}/, ""));
+          i++;
+        }
+        const li = el("li");
+        renderInlineInto(buf.join(" "), li);
+        list.appendChild(li);
+        if (i < lines.length && isBlank(lines[i])) { i++; break; }
+      }
+      frag.appendChild(list);
+      continue;
+    }
+
+    /* paragraph — gather contiguous non-blank, non-block lines */
+    const buf = [line];
+    i++;
+    while (i < lines.length && !isBlank(lines[i]) &&
+           !/^ {0,3}#{1,6}\s/.test(lines[i]) &&
+           !/^ {0,3}(```|~~~)/.test(lines[i]) &&
+           !/^ {0,3}>/.test(lines[i]) &&
+           !/^ {0,3}([-*+]|\d+\.)\s+/.test(lines[i]) &&
+           !isHr(lines[i])) {
+      buf.push(lines[i]); i++;
+    }
+    const p = el("p");
+    renderInlineInto(buf.join("\n"), p);
+    frag.appendChild(p);
+  }
+
+  return frag;
+}
+
+function splitTableRow(line) {
+  let s = line.trim();
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|"))  s = s.slice(0, -1);
+  /* split on unescaped pipes */
+  const out = []; let cur = "";
+  for (let k = 0; k < s.length; k++) {
+    const c = s[k];
+    if (c === "\\" && s[k + 1] === "|") { cur += "|"; k++; continue; }
+    if (c === "|") { out.push(cur); cur = ""; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out.map((x) => x.trim());
+}
+
+/* Tokenize-and-render inline markdown into `target`. We walk the string
+ * with a small state machine — never use innerHTML. Order matters:
+ * code spans win first (their contents are literal). */
+function renderInlineInto(src, target) {
+  let i = 0; const n = src.length;
+  while (i < n) {
+    const c = src[i];
+    /* inline code */
+    if (c === "`") {
+      const end = src.indexOf("`", i + 1);
+      if (end !== -1) {
+        const code = el("code");
+        code.textContent = src.slice(i + 1, end);
+        target.appendChild(code);
+        i = end + 1; continue;
+      }
+    }
+    /* bold ** ** */
+    if (c === "*" && src[i + 1] === "*") {
+      const end = src.indexOf("**", i + 2);
+      if (end !== -1) {
+        const strong = el("strong");
+        renderInlineInto(src.slice(i + 2, end), strong);
+        target.appendChild(strong);
+        i = end + 2; continue;
+      }
+    }
+    /* italic * * or _ _ */
+    if ((c === "*" || c === "_") && src[i + 1] !== c) {
+      const end = src.indexOf(c, i + 1);
+      if (end !== -1 && /\S/.test(src.slice(i + 1, end))) {
+        const em = el("em");
+        renderInlineInto(src.slice(i + 1, end), em);
+        target.appendChild(em);
+        i = end + 1; continue;
+      }
+    }
+    /* link [text](url) — only http(s) URLs are honored, others dropped to text */
+    if (c === "[") {
+      const close = src.indexOf("]", i + 1);
+      if (close !== -1 && src[close + 1] === "(") {
+        const paren = src.indexOf(")", close + 2);
+        if (paren !== -1) {
+          const url = src.slice(close + 2, paren).trim();
+          const safe = /^https?:\/\//i.test(url);
+          if (safe) {
+            const a = el("a", { href: url, target: "_blank", rel: "noopener noreferrer" });
+            renderInlineInto(src.slice(i + 1, close), a);
+            target.appendChild(a);
+            i = paren + 1; continue;
+          }
+        }
+      }
+    }
+    /* line break (two trailing spaces + \n) */
+    if (c === "\n") {
+      target.appendChild(document.createTextNode("\n"));
+      i++; continue;
+    }
+    /* plain text run — find next markdown trigger */
+    const next = nextInlineTrigger(src, i);
+    target.appendChild(document.createTextNode(src.slice(i, next)));
+    i = next;
+  }
+}
+
+function nextInlineTrigger(src, from) {
+  for (let k = from + 1; k < src.length; k++) {
+    const c = src[k];
+    if (c === "`" || c === "*" || c === "_" || c === "[" || c === "\n") return k;
+  }
+  return src.length;
+}
+
+/* ── Chat panel rendering ──────────────────────────────────────────── */
+function renderChatPanel() {
+  const sec = $("#chat-section");
+  if (!sec) return;
+  /* Build once; later updates touch only message list */
+  if (sec.dataset.built === "1") return;
+  sec.dataset.built = "1";
+
+  const head = el("div", { class: "chat-head", role: "button",
+                            "aria-expanded": String(chat.open),
+                            onclick: toggleChat,
+                            onkeydown: (e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault(); toggleChat();
+                              }
+                            },
+                            tabindex: "0" }, [
+    el("h2", null, t("chat.title")),
+    el("span", { class: "pill", id: "chat-toggle-pill" },
+       chat.open ? t("chat.collapse") : t("chat.expand")),
+    el("span", { class: "grow" }),
+    el("span", { class: "chat-typing", id: "chat-stats" }, ""),
+  ]);
+
+  const msgs = el("div", { class: "chat-msgs", id: "chat-msgs", role: "log",
+                            "aria-live": "polite" });
+  if (chat.params && state.params.prompt) {
+    /* honor ?prompt= by prefilling input — no auto-send to avoid surprises */
+  }
+  msgs.appendChild(el("div", { class: "chat-empty", id: "chat-empty" },
+                       t("chat.empty")));
+
+  const ta = el("textarea", {
+    id: "chat-input",
+    placeholder: t("chat.placeholder"),
+    rows: "1",
+    "aria-label": t("chat.placeholder"),
+    onkeydown: (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); sendChat();
+      }
+    },
+    oninput: (e) => {
+      const tEl = e.target;
+      tEl.style.height = "auto";
+      tEl.style.height = Math.min(tEl.scrollHeight, 200) + "px";
+    },
+  });
+  if (state.params.prompt) ta.value = state.params.prompt;
+
+  const sendBtn = el("button", { id: "chat-send", class: "primary",
+                                  onclick: sendChat,
+                                  "aria-label": t("chat.send") },
+                     t("chat.send"));
+  const stopBtn = el("button", { id: "chat-stop", class: "danger",
+                                  onclick: stopChat,
+                                  "aria-label": t("chat.stop"),
+                                  hidden: true },
+                     t("chat.stop"));
+  const inputRow = el("div", { class: "chat-input-row", id: "chat-input-row",
+                                hidden: !chat.open },
+                      [ta, sendBtn, stopBtn]);
+
+  const main = el("div", { class: "chat-main" }, [msgs, inputRow]);
+
+  /* Side panel — params */
+  const sysTa = el("textarea", { id: "chat-system",
+                                  placeholder: t("chat.system_placeholder"),
+                                  rows: "3",
+                                  oninput: (e) => { chat.systemPrompt = e.target.value; } });
+  const tempRange = paramSlider("chat-p-temp", "chat.temperature",
+                                 chat.params.temperature, 0, 2, 0.05,
+                                 (v) => chat.params.temperature = v);
+  const topPRange = paramSlider("chat-p-topp", "chat.top_p",
+                                 chat.params.top_p, 0, 1, 0.01,
+                                 (v) => chat.params.top_p = v);
+  const maxTok    = paramSlider("chat-p-max", "chat.max_tokens",
+                                 chat.params.max_tokens, 16, 4096, 16,
+                                 (v) => chat.params.max_tokens = v);
+  const fanout    = paramSlider("chat-p-fanout", "chat.fanout",
+                                 chat.params.fanout, 1, 8, 1,
+                                 (v) => chat.params.fanout = v);
+  const clearBtn  = el("button", { onclick: clearChat }, t("chat.clear"));
+
+  const side = el("div", { class: "chat-side", id: "chat-side", hidden: !chat.open }, [
+    el("label", null, [t("chat.system_prompt"), sysTa]),
+    tempRange, topPRange, maxTok, fanout,
+    clearBtn,
+  ]);
+
+  const body = el("div", { class: "chat-body", id: "chat-body", hidden: !chat.open },
+                  [main, side]);
+  const card = el("div", { class: "card chat-card" }, [head, body]);
+  sec.innerHTML = "";
+  sec.appendChild(card);
+
+  /* sync open state */
+  applyChatOpenState();
+}
+
+function paramSlider(id, labelKey, initial, min, max, step, onChange) {
+  const valSpan = el("span", { class: "v", id: id + "-v" }, String(initial));
+  const range = el("input", {
+    type: "range", id: id, min: String(min), max: String(max),
+    step: String(step), value: String(initial),
+    oninput: (e) => {
+      const v = parseFloat(e.target.value);
+      onChange(v);
+      valSpan.textContent = step >= 1 ? String(Math.round(v)) : v.toFixed(2);
+    },
+  });
+  return el("label", null, [
+    t(labelKey),
+    el("div", { class: "row" }, [range, valSpan]),
+  ]);
+}
+
+function toggleChat() {
+  chat.open = !chat.open;
+  applyChatOpenState();
+}
+
+function applyChatOpenState() {
+  const body = $("#chat-body");
+  const inputRow = $("#chat-input-row");
+  const side = $("#chat-side");
+  const pill = $("#chat-toggle-pill");
+  const head = $(".chat-head");
+  if (body) body.hidden = !chat.open;
+  if (inputRow) inputRow.hidden = !chat.open;
+  if (side) side.hidden = !chat.open;
+  if (pill) pill.textContent = chat.open ? t("chat.collapse") : t("chat.expand");
+  if (head) head.setAttribute("aria-expanded", String(chat.open));
+  if (chat.open) {
+    const ta = $("#chat-input");
+    if (ta) ta.focus();
+  }
+}
+
+function clearChat() {
+  if (chat.inflight) return;  /* refuse while a request is in flight */
+  chat.messages = [];
+  const msgs = $("#chat-msgs");
+  if (msgs) {
+    while (msgs.firstChild) msgs.removeChild(msgs.firstChild);
+    msgs.appendChild(el("div", { class: "chat-empty", id: "chat-empty" },
+                         t("chat.empty")));
+  }
+}
+
+function appendChatMessage(role, content, opts) {
+  const empty = $("#chat-empty");
+  if (empty) empty.remove();
+  const msgs = $("#chat-msgs");
+  if (!msgs) return null;
+  const body = el("div", { class: "body" });
+  body.appendChild(renderMarkdown(content || ""));
+  const stats = el("div", { class: "stats" }, opts && opts.stats ? opts.stats : "");
+  const node = el("div", { class: "chat-msg " + role },
+                  [el("span", { class: "who" }, role === "user" ? t("chat.you") : t("chat.assistant")),
+                   body, stats]);
+  msgs.appendChild(node);
+  msgs.scrollTop = msgs.scrollHeight;
+  return { body, stats, node };
+}
+
+function setChatStats(s) {
+  const node = $("#chat-stats");
+  if (node) node.textContent = s || "";
+}
+
+function setSendingUI(sending) {
+  const send = $("#chat-send");
+  const stop = $("#chat-stop");
+  const ta   = $("#chat-input");
+  if (send) send.hidden = !!sending;
+  if (stop) stop.hidden = !sending;
+  if (ta) ta.disabled = !!sending;
+}
+
+async function sendChat() {
+  if (chat.inflight) return;
+  const ta = $("#chat-input");
+  const text = ta ? ta.value.trim() : "";
+  if (!text) return;
+  ta.value = ""; ta.style.height = "auto";
+
+  /* push user message */
+  chat.messages.push({ role: "user", content: text });
+  appendChatMessage("user", text);
+
+  /* fan-out N parallel requests for stress test mode */
+  const n = Math.max(1, Math.min(8, chat.params.fanout | 0));
+  const targets = [];
+  for (let k = 0; k < n; k++) {
+    targets.push(appendChatMessage("assistant", "",
+      { stats: n > 1 ? "#" + (k + 1) + "/" + n + " — …" : "…" }));
+  }
+
+  /* assemble messages payload — system prompt only if non-empty */
+  const payload = {
+    model: state.selectedModel || (state.models[0] && state.models[0].id) || "default",
+    messages: [],
+    stream: true,
+    temperature: chat.params.temperature,
+    top_p: chat.params.top_p,
+    max_tokens: chat.params.max_tokens | 0,
+  };
+  if (chat.systemPrompt && chat.systemPrompt.trim()) {
+    payload.messages.push({ role: "system", content: chat.systemPrompt.trim() });
+  }
+  for (const m of chat.messages) payload.messages.push({ role: m.role, content: m.content });
+
+  const ctrl = new AbortController();
+  chat.inflight = ctrl;
+  setSendingUI(true);
+  setChatStats(t("chat.streaming"));
+
+  const t0 = Date.now();
+  try {
+    const url = state.serverBase.replace(/\/+$/, "") + "/v1/chat/completions";
+    /* Each fanout target gets its own fetch so we exercise parallel slots. */
+    const tasks = targets.map((target, idx) => streamOne(url, payload, ctrl.signal, target, t0, idx, n));
+    const results = await Promise.allSettled(tasks);
+    /* collapse the user-facing assistant history into the first successful response */
+    const first = results.find((r) => r.status === "fulfilled" && r.value);
+    if (first) chat.messages.push({ role: "assistant", content: first.value.content });
+    setChatStats("");
+  } catch (e) {
+    setChatStats(t("chat.error") + ": " + (e && e.message ? e.message : String(e)));
+  } finally {
+    chat.inflight = null;
+    setSendingUI(false);
+  }
+}
+
+async function streamOne(url, payload, signal, target, t0, idx, total) {
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+      body: JSON.stringify(payload),
+      signal,
+    });
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      target.stats.textContent = t("chat.cancelled");
+      return null;
+    }
+    target.stats.textContent = t("chat.error") + ": " + e.message;
+    throw e;
+  }
+  if (!res.ok) {
+    let body = "";
+    try { body = await res.text(); } catch (_e) {}
+    target.stats.textContent = t("chat.error") + " " + res.status +
+                               (body ? ": " + body.slice(0, 200) : "");
+    throw new Error("HTTP " + res.status);
+  }
+  if (!res.body) {
+    target.stats.textContent = t("chat.error") + ": no body";
+    throw new Error("no body");
+  }
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let acc = "";
+  let usage = null;
+  let nTokens = 0;
+
+  const reflow = () => {
+    /* full re-render — content is small, and the renderer builds DOM
+     * directly so this is safe and cheaper than diffing partial deltas. */
+    while (target.body.firstChild) target.body.removeChild(target.body.firstChild);
+    target.body.appendChild(renderMarkdown(acc));
+    /* keep scroll at bottom only when user hasn't scrolled up */
+    const msgs = $("#chat-msgs");
+    if (msgs && (msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight) < 80) {
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).replace(/\r$/, "");
+        buf = buf.slice(nl + 1);
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === "[DONE]") continue;
+        let json;
+        try { json = JSON.parse(data); } catch (_e) { continue; }
+        if (json.usage) usage = json.usage;
+        const delta = json.choices && json.choices[0] && json.choices[0].delta;
+        if (delta && typeof delta.content === "string") {
+          acc += delta.content;
+          nTokens++;
+          reflow();
+        }
+        const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+        const rate = nTokens > 0 ? (nTokens / Math.max(0.001, (Date.now() - t0) / 1000)).toFixed(1) : "0.0";
+        const prefix = total > 1 ? "#" + (idx + 1) + "/" + total + " — " : "";
+        target.stats.textContent = prefix + elapsed + "s · " + nTokens + " " +
+                                    t("chat.tok") + " · " + rate + " " + t("chat.tok_per_s");
+      }
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      target.stats.textContent = t("chat.cancelled") + " · " + acc.length + " " + t("chat.chars");
+      return null;
+    }
+    target.stats.textContent = t("chat.error") + ": " + e.message;
+    throw e;
+  }
+
+  /* Final stats from server usage if provided */
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  let stats = elapsed + "s · " + nTokens + " " + t("chat.tok");
+  if (usage) {
+    const pt = usage.prompt_tokens || 0;
+    const ct = usage.completion_tokens || nTokens;
+    const rate = ct > 0 ? (ct / Math.max(0.001, (Date.now() - t0) / 1000)).toFixed(1) : "0.0";
+    stats = elapsed + "s · " + pt + " in / " + ct + " out · " + rate + " " + t("chat.tok_per_s");
+  }
+  if (total > 1) stats = "#" + (idx + 1) + "/" + total + " — " + stats;
+  target.stats.textContent = stats;
+
+  return { content: acc };
+}
+
+function stopChat() {
+  if (chat.inflight) chat.inflight.abort();
+}
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", boot);

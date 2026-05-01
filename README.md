@@ -17,8 +17,9 @@ A zero-dependency, single-HTML-file monitoring dashboard for
 
 ## What it shows
 
-- Live `/metrics` (Prometheus): generation tok/s, prompt tok/s, KV cache
-  usage, processing/deferred requests, cumulative counters
+- Live `/metrics` (Prometheus): generation tok/s, prompt tok/s,
+  processing / deferred requests, busy slots per decode call, cumulative
+  prompt and generation counters
 - `/slots`: per-slot state with full sampling parameters
   (temperature, top_k, top_p, min_p, repeat penalty, mirostat, DRY, etc.)
 - `/props` + `/v1/models`: model metadata (vocab/context/embedding
@@ -31,8 +32,10 @@ A zero-dependency, single-HTML-file monitoring dashboard for
   if not available)
 - **Inline guidance**: each card carries an ⓘ tooltip with the
   underlying parameter explained; suggestions appear when state
-  crosses thresholds (e.g. "KV cache 96% — consider raising
-  `--ctx-size` or reducing `--parallel`")
+  crosses thresholds
+- **Built-in chat panel**: `POST /v1/chat/completions` with streaming,
+  system prompt, parameter sliders, cancel button, and a parallel
+  fan-out mode for stress-testing slots (see below)
 
 ## Quick start
 
@@ -76,9 +79,31 @@ selector appears in the header.
 | `poll` | `1000` | polling interval, ms |
 | `log` | auto | log file path; auto-detect if not specified, panel hidden if not reachable |
 | `lang` | auto | `en` / `ko` / `ja` / `zh-CN` / `es` (defaults from browser) |
+| `prompt` | (none) | prefills the chat input on load (no auto-send) |
 
 Settings live in the URL only — no localStorage. Share a link, get the
 same view.
+
+## Chat panel
+
+A collapsible chat panel sits between the slot grid and the model card.
+It speaks to the same llama-server you're monitoring, so you can fire a
+prompt and watch the metrics react in real time.
+
+- **Streaming**: SSE from `/v1/chat/completions`; tokens land as they
+  arrive. Stop button aborts the in-flight stream.
+- **Markdown rendering**: headings, paragraphs, **bold**, *italic*,
+  inline `code`, fenced code blocks, ordered/unordered lists, tables
+  (GFM), blockquotes, horizontal rules, and `[text](https://…)` links.
+  No external library — the renderer builds DOM nodes directly via
+  `textContent`, so server output cannot inject HTML or scripts.
+- **System prompt**: optional. Sent as `role: "system"` before history.
+- **Sliders**: `temperature`, `top_p`, `max_tokens`, and a parallel
+  fan-out (1 – 8) that fires the same prompt to N slots simultaneously
+  for a quick saturation test.
+- **No persistence**: by project rule there is no localStorage, so
+  reloading the page wipes the conversation. Use `?prompt=…` to seed
+  the input from a URL.
 
 ## Optional: log tail
 
@@ -109,7 +134,7 @@ path with `?log=path/to/file`. Disable explicitly with `?log=`.
 
 | Signal | Threshold | Suggestion |
 |---|---|---|
-| KV cache usage | > 90% sustained | Raise `--ctx-size`, lower `--parallel`, or enable `--ctx-shift` |
+| Busy slots per decode | > 90% of total slots | Raise `--parallel` or reduce client concurrency |
 | Deferred requests | > 0 sustained | Raise `--parallel` or reduce client concurrency |
 | Generation tok/s low + slots idle | — | Increase `--n-gpu-layers` |
 | `is_sleeping` true | — | First request will reload the model — tune `--sleep-idle-seconds` |

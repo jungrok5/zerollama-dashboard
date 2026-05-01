@@ -348,8 +348,8 @@
 
 <header class="app">
   <span class="brand">zero<span class="dot">·</span>llama</span>
-  <span id="status-led" class="led" aria-live="polite"></span>
-  <span id="status-text" class="status-pill" data-i18n="header.status.connecting">…</span>
+  <span id="status-led" class="led" aria-hidden="true"></span>
+  <span id="status-text" class="status-pill" role="status" aria-live="polite" data-i18n="header.status.connecting">…</span>
   <span id="last-update" class="last-update" aria-live="polite"></span>
   <span class="grow"></span>
   <span id="server-display" class="server" title=""></span>
@@ -460,6 +460,9 @@ const I18N = {
     "models.confirm.load":      "Load model {name}? This consumes server resources.",
     "models.confirm.unload":    "Unload model {name}? In-flight requests may fail.",
     "models.no_models":         "No models found",
+    "models.cached":            "cached",
+    "modal.warn_router":        "This will modify the running router.",
+    "modal.warn_server":        "This will affect the running server.",
     "model.path":               "Path",
     "model.template":           "Chat template",
     "model.modalities":         "Modalities",
@@ -618,6 +621,9 @@ const I18N = {
     "models.confirm.load":    "{name} 모델을 로드하시겠습니까? 서버 자원이 사용됩니다.",
     "models.confirm.unload":  "{name} 모델을 언로드하시겠습니까? 진행 중인 요청이 실패할 수 있습니다.",
     "models.no_models":       "모델이 없습니다",
+    "models.cached":          "캐시됨",
+    "modal.warn_router":      "이 작업은 실행 중인 라우터의 상태를 변경합니다.",
+    "modal.warn_server":      "이 작업은 실행 중인 서버에 영향을 줍니다.",
     "model.path":             "경로",
     "model.template":         "채팅 템플릿",
     "model.modalities":       "모달리티",
@@ -759,6 +765,9 @@ const I18N = {
     "models.confirm.load":    "モデル {name} をロードしますか? サーバーリソースを消費します。",
     "models.confirm.unload":  "モデル {name} をアンロードしますか? 進行中のリクエストが失敗する可能性があります。",
     "models.no_models":       "モデルが見つかりません",
+    "models.cached":          "キャッシュ済み",
+    "modal.warn_router":      "この操作は動作中のルーターの状態を変更します。",
+    "modal.warn_server":      "この操作は動作中のサーバーに影響します。",
     "model.path":             "パス",
     "model.template":         "チャットテンプレート",
     "model.modalities":       "モダリティ",
@@ -900,6 +909,9 @@ const I18N = {
     "models.confirm.load":    "加载模型 {name}? 将占用服务器资源。",
     "models.confirm.unload":  "卸载模型 {name}? 进行中的请求可能失败。",
     "models.no_models":       "未找到模型",
+    "models.cached":          "已缓存",
+    "modal.warn_router":      "该操作会修改运行中的路由器状态。",
+    "modal.warn_server":      "该操作会影响运行中的服务器。",
     "model.path":             "路径",
     "model.template":         "对话模板",
     "model.modalities":       "模态",
@@ -1041,6 +1053,9 @@ const I18N = {
     "models.confirm.load":    "¿Cargar el modelo {name}? Consume recursos del servidor.",
     "models.confirm.unload":  "¿Descargar el modelo {name}? Las peticiones en curso pueden fallar.",
     "models.no_models":       "No se encontraron modelos",
+    "models.cached":          "en caché",
+    "modal.warn_router":      "Esta acción modificará el router en ejecución.",
+    "modal.warn_server":      "Esta acción afectará al servidor en ejecución.",
     "model.path":             "Ruta",
     "model.template":         "Plantilla de chat",
     "model.modalities":       "Modalidades",
@@ -1494,7 +1509,10 @@ async function boot() {
 
   state.ui.bootDone = true;
   state.lastUpdate = Date.now();
-  setStatus("online", "header.status.online");
+  /* Don't lie: only show "online" if /props came back. Otherwise leave
+   * whichever error/offline state was set above so the LED matches the
+   * banner. */
+  if (state.props) setStatus("online", "header.status.online");
 
   renderBootSummary();
   renderGuidance();
@@ -1589,14 +1607,14 @@ function routerModelCard(m) {
     el("div", { class: "row-actions" }, [
       el("span", { class: "badge status-" + status }, t("models.status." + status)
         || t("models.status.unknown")),
-      m.in_cache ? el("span", { class: "badge" }, "cached") : null,
+      m.in_cache ? el("span", { class: "badge" }, t("models.cached")) : null,
       (m.status && m.status.failed && m.status.exit_code !== undefined && m.status.exit_code !== null)
         ? el("span", { class: "badge status-failed" },
             t("models.exit_code") + " " + m.status.exit_code)
         : null,
     ].filter(Boolean)),
     m.path ? el("div", { class: "sub" },
-      el("span", { class: "badge" }, "path") )
+      el("span", { class: "badge" }, t("model.path")) )
       : null,
     m.path ? el("div", { class: "sub", style: "word-break: break-all;" }, m.path) : null,
   ]);
@@ -1793,27 +1811,35 @@ function onModelSelect(id) {
  *  We never call window.confirm so we can show formatted body and avoid
  *  the browser-native dialog blocking the event loop.
  * ──────────────────────────────────────────────────────────────────── */
-function showModal({ title, bodyNode, okLabel, onOk }) {
+function showModal({ title, bodyNode, okLabel, onOk, mutating }) {
   const back = el("div", { class: "modal-backdrop", role: "dialog", "aria-modal": "true" });
-  const close = () => back.remove();
+  let onKey;
+  const close = () => {
+    back.remove();
+    if (onKey) document.removeEventListener("keydown", onKey);
+  };
   const ok = el("button", { class: "primary", onclick: async () => {
     ok.disabled = true;
     try { await onOk(); } finally { close(); }
   }}, okLabel || t("common.confirm"));
   const cancel = el("button", { onclick: close }, t("common.cancel"));
+  /* mutating modals get a "this changes server state" warning; informational
+   * modals (like the log help dialog) skip it. */
+  const warnNode = mutating
+    ? el("div", { class: "warn" }, "⚠ " + t(state.mode === "router"
+        ? "modal.warn_router" : "modal.warn_server"))
+    : null;
   const m = el("div", { class: "modal" }, [
     el("h3", null, title),
     el("div", { class: "body" }, bodyNode),
-    el("div", { class: "warn" }, "⚠ " + (state.mode === "router"
-      ? "This will modify the running router."
-      : "This will affect the running server.")),
+    warnNode,
     el("div", { class: "actions" }, [cancel, ok]),
-  ]);
+  ].filter(Boolean));
   back.appendChild(m);
   back.addEventListener("click", (e) => { if (e.target === back) close(); });
   document.body.appendChild(back);
   /* Esc closes — listen on document so focus position doesn't matter */
-  const onKey = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
+  onKey = (e) => { if (e.key === "Escape") close(); };
   document.addEventListener("keydown", onKey);
   ok.focus();
 }
@@ -1822,6 +1848,7 @@ function confirmAction(message, onOk) {
   showModal({
     title: t("common.confirm"),
     bodyNode: el("div", null, message),
+    mutating: true,
     onOk,
   });
 }
@@ -2801,7 +2828,13 @@ setInterval(tickLastUpdate, 1000);
 /* one allowed setInterval — read-only DOM update, no fetch involved,
  * so the "no setInterval for fetches" rule still holds. */
 
-document.addEventListener("DOMContentLoaded", boot);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot);
+} else {
+  /* parser already past DOMContentLoaded — schedule on the next tick so
+   * any synchronous code below this point still runs first. */
+  Promise.resolve().then(boot);
+}
 </script>
 </body>
 </html>

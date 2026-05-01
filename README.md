@@ -4,7 +4,7 @@ A live status page for your [llama.cpp](https://github.com/ggml-org/llama.cpp)
 server. Open it in a browser, see what your model is doing, and chat with
 it from the same page.
 
-[**▶ Try the live demo**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — runs without a real server, just to give you a feel.
+[**▶ Try the live demo**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — no real server needed, just so you can see what it looks like.
 
 > Languages: **English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
@@ -14,25 +14,25 @@ it from the same page.
 
 ## What you get
 
-- **Real-time view** — generation speed, request queue, slot activity,
-  all updating live.
-- **Chat with your model** right inside the dashboard. Streaming
+- **Live monitoring** — generation speed, request queue, and slot
+  activity update in real time.
+- **Built-in chat** — talk to your model from the same page. Streaming
   responses, Markdown rendering, a stop button, and sliders for
-  temperature / top_p / max tokens.
-- **Plain-language tips** when the server is under pressure — for
-  example, "queue is building up, try `--parallel +1`".
-- **Per-slot detail** including the full sampling configuration
-  (temperature, top_k, top_p, repeat penalty, mirostat, …).
-- **Five UI languages**: English / 한국어 / 日本語 / 简体中文 /
-  Español. The dashboard picks one from your browser; you can switch
-  any time from the header.
-- **Single-model and router servers** are both supported and detected
-  automatically.
+  temperature / top_p / max_tokens.
+- **Plain-language tips** — when the server is under pressure, the
+  dashboard tells you which option to tune (for example, "the queue
+  is growing — try raising `--parallel` by one").
+- **Per-slot detail** — the full sampling configuration (temperature,
+  top_k, top_p, repeat_penalty, mirostat, …) all in one place.
+- **Five UI languages** — English / 한국어 / 日本語 / 简体中文 /
+  Español. Auto-selected from your browser, switchable any time from
+  the header.
+- **Auto-detection** of single-model and router servers.
 
-## Setup
+## Getting started
 
-You'll need a recent llama-server, started with `--metrics`. The
-simplest layout is to let llama-server itself host `monitor.html`:
+You'll need a reasonably recent llama-server started with `--metrics`.
+The simplest setup is to let llama-server serve `monitor.html` itself:
 
 ```bash
 mkdir -p public
@@ -42,8 +42,8 @@ llama-server -m model.gguf --metrics --port 8080 --path ./public
 
 Then open `http://localhost:8080/monitor.html`.
 
-To monitor a server on another machine, host `monitor.html` anywhere
-static and pass `?server=`:
+To monitor a server on another machine, host `monitor.html` on any
+static host and point at the server with `?server=`:
 
 ```
 http://localhost:8000/monitor.html?server=http://10.0.0.5:8080
@@ -61,7 +61,7 @@ http://localhost:8000/monitor.html?server=http://10.0.0.5:8080
 | `poll` | polling interval, ms (default `1000`) |
 | `log` | log file path (auto-detected when omitted) |
 
-Settings live in the URL only, so a link captures the exact view —
+Every setting lives in the URL, so a link captures the exact view —
 share it and the recipient sees the same thing.
 
 ## Host your own demo

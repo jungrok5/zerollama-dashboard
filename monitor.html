@@ -245,6 +245,36 @@
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
   .modal .actions button.primary { background: #1f4a7a; border-color: #2f6db1; color: #cfe3ff; }
   .modal .warn { color: var(--warn); font-size: 12px; }
+  /* log panel */
+  .log-card { gap: 6px; }
+  .log-toolbar {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .log-toolbar input[type="search"] { min-width: 160px; flex: 1; }
+  .log-view {
+    background: #07090c; border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.45;
+    color: #c5d2dd;
+    max-height: 50vh; overflow: auto;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .log-view .ln { display: block; }
+  .log-view .ln.hidden { display: none; }
+  .ansi-30 { color: #6b7785; } .ansi-31 { color: #f85149; }
+  .ansi-32 { color: #3fb950; } .ansi-33 { color: #d29922; }
+  .ansi-34 { color: #58a6ff; } .ansi-35 { color: #d29df0; }
+  .ansi-36 { color: #56d4dd; } .ansi-37 { color: #c5d2dd; }
+  .ansi-90 { color: #6e7681; } .ansi-91 { color: #ff7b72; }
+  .ansi-92 { color: #56d364; } .ansi-93 { color: #e3b341; }
+  .ansi-94 { color: #79c0ff; } .ansi-95 { color: #d2a8ff; }
+  .ansi-96 { color: #76e3ea; } .ansi-97 { color: #f0f6fc; }
+  .ansi-bold { font-weight: 600; }
+  .info-btn {
+    cursor: pointer; color: var(--fg-mute); background: transparent;
+    border: none; padding: 0 4px; font-size: 13px;
+  }
+  .info-btn:hover { color: var(--fg); }
   /* responsive */
   @media (max-width: 480px) {
     header.app { padding: 8px 10px; gap: 8px; }
@@ -843,6 +873,8 @@ async function boot() {
   renderBootSummary();
   startCorePollers();
   startSecondaryPollers();
+  /* fire-and-forget log detection — never blocks the dashboard */
+  startLogPoller().catch(() => {});
 }
 
 /* Bare minimum scaffold so later phases have stable mount points to
@@ -1243,6 +1275,208 @@ async function slotAction(id, action) {
         showBanner("slot-" + action, "slot " + id + " " + action + ": " + e.message);
       }
     },
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Log tail (Phase 6)
+ *
+ *  Mechanism: HTTP Range against a static file. The dashboard cannot
+ *  read local files, so this only works when:
+ *    1. llama-server's stdout is redirected to a file
+ *       (e.g. `... > ./public/server.log 2>&1`)
+ *    2. that file is served from the same origin
+ *    3. the HTTP server supports Range (cpp-httplib + nginx do)
+ *  If HEAD on the path fails (404, CORS, etc.) the panel is hidden.
+ * ──────────────────────────────────────────────────────────────────── */
+const LOG_TAIL_BYTES = 65536;
+const LOG_MAX_LINES = 2000;
+const logState = {
+  url: null,
+  enabled: false,
+  totalSize: 0,
+  lastModified: null,
+  lines: [],
+  follow: true,
+  filter: "",
+};
+
+function logUrl() {
+  /* honor explicit ?log=, default to ./server.log relative to the
+   * current page (NOT the API server — that wouldn't be reachable). */
+  const p = state.params.log;
+  if (p === "") return null;       /* explicitly disabled */
+  const path = (p == null || p === undefined) ? "server.log" : p;
+  try {
+    return new URL(path, window.location.href).toString();
+  } catch (_e) { return null; }
+}
+
+async function detectLog() {
+  const url = logUrl();
+  if (!url) { logState.enabled = false; return false; }
+  try {
+    const res = await fetch(url, { method: "HEAD", cache: "no-store" });
+    if (!res.ok) return false;
+    /* Accept-Ranges: bytes is what makes tail possible. Fall back to
+     * "total bytes < tail size" if the header is missing — at least we
+     * can show the whole file. */
+    const accepts = (res.headers.get("Accept-Ranges") || "").toLowerCase();
+    const size = parseInt(res.headers.get("Content-Length") || "0", 10);
+    if (accepts.indexOf("bytes") === -1 && (!size || size > LOG_TAIL_BYTES * 4)) {
+      return false;
+    }
+    logState.url = url;
+    logState.enabled = true;
+    logState.totalSize = isFinite(size) ? size : 0;
+    return true;
+  } catch (_e) { return false; }
+}
+
+async function fetchLogTail() {
+  if (!logState.enabled || !logState.url) return null;
+  const headers = { "Cache-Control": "no-cache" };
+  /* Negative Range: read the last N bytes (no need to track size). */
+  headers["Range"] = "bytes=-" + LOG_TAIL_BYTES;
+  const res = await fetch(logState.url, { headers, cache: "no-store" });
+  if (!res.ok && res.status !== 206) {
+    throw new Error("HTTP " + res.status);
+  }
+  const lm = res.headers.get("Last-Modified");
+  if (lm && lm === logState.lastModified) return null;       /* unchanged */
+  logState.lastModified = lm;
+  return await res.text();
+}
+
+/* Minimal ANSI SGR renderer — color/bold codes only, anything else
+ * is dropped. Returns a fragment of <span>s. */
+function ansiToFragment(line) {
+  const frag = document.createDocumentFragment();
+  const parts = line.split(/\x1b\[([\d;]*)m/);
+  /* parts: [text, code, text, code, text, ...] */
+  let activeClasses = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      if (!parts[i]) continue;
+      if (activeClasses.length === 0) {
+        frag.appendChild(document.createTextNode(parts[i]));
+      } else {
+        const span = document.createElement("span");
+        span.className = activeClasses.join(" ");
+        span.textContent = parts[i];
+        frag.appendChild(span);
+      }
+    } else {
+      const code = parts[i];
+      if (code === "" || code === "0") {
+        activeClasses = [];
+        continue;
+      }
+      const codes = code.split(";").map((s) => parseInt(s, 10));
+      for (const c of codes) {
+        if (c === 0) activeClasses = [];
+        else if (c === 1) activeClasses.push("ansi-bold");
+        else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97)) {
+          activeClasses = activeClasses.filter((cl) => !cl.match(/^ansi-\d/));
+          activeClasses.push("ansi-" + c);
+        }
+      }
+    }
+  }
+  return frag;
+}
+
+function renderLogLines(replace) {
+  const view = $("#log-view");
+  if (!view) return;
+  if (replace) view.innerHTML = "";
+  const filter = logState.filter.toLowerCase();
+  const start = replace ? 0 : view.childNodes.length;
+  for (let i = start; i < logState.lines.length; i++) {
+    const line = logState.lines[i];
+    const ln = el("span", { class: "ln" });
+    ln.appendChild(ansiToFragment(line));
+    if (filter && line.toLowerCase().indexOf(filter) === -1) {
+      ln.classList.add("hidden");
+    }
+    view.appendChild(ln);
+  }
+  if (logState.follow) view.scrollTop = view.scrollHeight;
+}
+
+function applyLogPayload(text) {
+  if (text == null) return;
+  /* The first line returned by a negative Range is likely truncated — drop it. */
+  const lines = text.split(/\r?\n/);
+  if (lines.length > 1) lines.shift();
+  /* trailing empty line from "...\n" */
+  while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  logState.lines = lines.slice(-LOG_MAX_LINES);
+  renderLogLines(true);
+}
+
+function ensureLogSection() {
+  const sec = $("#log-section");
+  if (sec.dataset.built === "1") return;
+  sec.dataset.built = "1";
+  sec.innerHTML = "";
+  if (!logState.enabled) return;
+  const card = el("div", { class: "card full log-card" }, [
+    el("h2", null, [
+      t("log.title") + " ",
+      el("button", { class: "info-btn", title: t("log.setup_help_title"),
+                     onclick: () => showLogHelp() }, "ⓘ"),
+    ]),
+    el("div", { class: "log-toolbar" }, [
+      el("label", null, [
+        el("input", { type: "checkbox", id: "log-follow", checked: "checked",
+                      onchange: () => { logState.follow = $("#log-follow").checked; }}),
+        " " + t("log.follow"),
+      ]),
+      el("input", { type: "search", placeholder: t("log.search"),
+                    oninput: (e) => { logState.filter = e.target.value; renderLogLines(true); }}),
+      el("span", { class: "sub", id: "log-status" }, ""),
+    ]),
+    el("div", { class: "log-view", id: "log-view",
+                onscroll: (e) => {
+                  /* user scrolled away from bottom → stop autoscrolling */
+                  const v = e.target;
+                  const atBottom = (v.scrollTop + v.clientHeight + 4) >= v.scrollHeight;
+                  if (!atBottom && logState.follow) {
+                    logState.follow = false;
+                    const cb = $("#log-follow"); if (cb) cb.checked = false;
+                  }
+                }}, t("log.empty")),
+  ]);
+  sec.appendChild(card);
+}
+
+function showLogHelp() {
+  showModal({
+    title: t("log.setup_help_title"),
+    bodyNode: el("div", null, t("log.setup_help")),
+    okLabel: t("common.close"),
+    onOk: () => {},
+  });
+}
+
+async function startLogPoller() {
+  const ok = await detectLog();
+  if (!ok) {
+    logState.enabled = false;
+    return;
+  }
+  ensureLogSection();
+  /* immediate first fetch */
+  try {
+    const txt = await fetchLogTail();
+    if (txt != null) applyLogPayload(txt);
+  } catch (e) {
+    showBanner("log-init", "log: " + e.message, "warn");
+  }
+  startPoller("log", 5000, async () => {
+    const txt = await fetchLogTail();
+    if (txt != null) applyLogPayload(txt);
   });
 }
 

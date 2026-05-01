@@ -275,6 +275,36 @@
     border: none; padding: 0 4px; font-size: 13px;
   }
   .info-btn:hover { color: var(--fg); }
+  /* guidance */
+  .guidance-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .suggestion {
+    border: 1px solid var(--border);
+    background: var(--bg-3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .suggestion .head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600;
+  }
+  .suggestion .body {
+    font-size: 12px; color: var(--fg-dim); line-height: 1.5;
+  }
+  .suggestion .body strong { color: var(--fg); }
+  .suggestion.severity-info { border-color: #2f4969; }
+  .suggestion.severity-warn { border-color: #5a4a14; background: #1f1d10; }
+  .suggestion.severity-bad  { border-color: #5e2329; background: #1f1112; }
+  .sev-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 999px;
+    background: var(--bg-2); color: var(--fg-dim); border: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .sev-badge.info { color: #79c0ff; border-color: #2f4969; }
+  .sev-badge.warn { color: #e3b341; border-color: #5a4a14; }
+  .sev-badge.bad  { color: #ff7b72; border-color: #5e2329; }
   /* responsive */
   @media (max-width: 480px) {
     header.app { padding: 8px 10px; gap: 8px; }
@@ -871,6 +901,7 @@ async function boot() {
   setStatus("online", "header.status.online");
 
   renderBootSummary();
+  renderGuidance();
   startCorePollers();
   startSecondaryPollers();
   /* fire-and-forget log detection — never blocks the dashboard */
@@ -1239,6 +1270,7 @@ async function refreshRouterModels() {
     state.models = list;
     renderModelsCard();
     renderServerConfigCard();
+    bumpGuidance();
   } catch (e) {
     showBanner("models-refresh", "/models: " + e.message, "warn");
   }
@@ -1276,6 +1308,200 @@ async function slotAction(id, action) {
       }
     },
   });
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ *  Guidance engine (Phase 7)
+ *
+ *  Each rule inspects the current state and either returns null or a
+ *  {id, severity, title, explain, suggest, context} object. The Active
+ *  suggestions panel collects every triggered rule once per render.
+ *
+ *  Rules that need "sustained" behaviour (kv cache > 0.9 for 30s, etc.)
+ *  use sustained() which tracks an "above-threshold since" timestamp
+ *  per rule id.
+ * ──────────────────────────────────────────────────────────────────── */
+const sustainedSince = Object.create(null);
+function sustained(id, condition, seconds) {
+  const now = Date.now();
+  if (condition) {
+    if (!sustainedSince[id]) sustainedSince[id] = now;
+    return (now - sustainedSince[id]) >= seconds * 1000;
+  }
+  delete sustainedSince[id];
+  return false;
+}
+
+const RULES = [
+  /* --- aggregate metrics --- */
+  function ruleKvCacheHigh(s) {
+    const v = s.metrics && s.metrics["llamacpp:kv_cache_usage_ratio"];
+    if (v == null) return null;
+    if (sustained("kv_cache_high", v >= 0.9, 30)) {
+      return rule("kv_cache_high", "bad", { value: (v * 100).toFixed(1) + "%" });
+    }
+    if (v >= 0.75) return rule("kv_cache_high", "warn", { value: (v * 100).toFixed(1) + "%" });
+    return null;
+  },
+  function ruleDeferred(s) {
+    const v = s.metrics && s.metrics["llamacpp:requests_deferred"];
+    if (v == null) return null;
+    if (sustained("deferred", v > 0, 5)) {
+      return rule("deferred", v >= 5 ? "bad" : "warn", { value: String(v) });
+    }
+    return null;
+  },
+  function ruleIdleSlow(s) {
+    const tps = s.metrics && s.metrics["llamacpp:predicted_tokens_seconds"];
+    const proc = s.metrics && s.metrics["llamacpp:requests_processing"];
+    /* "slow" is relative — we say <5 tok/s with at least one slot busy */
+    if (tps != null && proc >= 1 && tps < 5 && tps > 0) {
+      if (sustained("idle_slow", true, 10)) {
+        return rule("idle_slow", "warn", { value: tps.toFixed(2) + " tok/s" });
+      }
+    } else { sustained("idle_slow", false, 10); }
+    return null;
+  },
+  /* --- props-derived --- */
+  function ruleSleeping(s) {
+    if (s.props && s.props.is_sleeping) {
+      return rule("sleeping", "info", { value: t("common.yes") });
+    }
+    return null;
+  },
+  /* --- per-slot sampler hints — emit once per slot, dedup later --- */
+  function ruleSamplerHints(s) {
+    const out = [];
+    for (const sl of s.slots) {
+      if (!sl.is_processing) continue;
+      const p = sl.params || {};
+      if (p.temperature === 0) {
+        out.push(rule("temp_zero", "info", { value: "slot " + sl.id }));
+      } else if (typeof p.temperature === "number" && p.temperature > 1.5) {
+        out.push(rule("temp_high", "warn",
+          { value: "slot " + sl.id + " — " + p.temperature.toFixed(2) }));
+      }
+      if (typeof p.repeat_penalty === "number" && p.repeat_penalty > 1.3) {
+        out.push(rule("repeat_high", "warn",
+          { value: "slot " + sl.id + " — " + p.repeat_penalty.toFixed(2) }));
+      }
+      if (p.mirostat && p.mirostat !== 0) {
+        out.push(rule("mirostat", "info", { value: "slot " + sl.id }));
+      }
+      if (typeof p.dry_multiplier === "number" && p.dry_multiplier > 0) {
+        out.push(rule("dry", "info", { value: "slot " + sl.id }));
+      }
+    }
+    /* dedup by rule id — a single suggestion stands in for all slots */
+    const seen = new Set(); const uniq = [];
+    for (const r of out) {
+      if (seen.has(r.id)) continue;
+      seen.add(r.id); uniq.push(r);
+    }
+    return uniq.length ? uniq : null;
+  },
+  /* --- LoRA --- */
+  function ruleLoraScale(s) {
+    const out = [];
+    for (const a of (s.loraAdapters || [])) {
+      if (typeof a.scale === "number" && a.scale > 1) {
+        out.push(rule("lora_scale", "warn",
+          { value: "id " + a.id + " — " + a.scale.toFixed(2) }));
+        break;
+      }
+    }
+    return out.length ? out : null;
+  },
+  /* --- router status --- */
+  function ruleFailedModels(s) {
+    if (s.mode !== "router") return null;
+    const failed = (s.models || []).filter((m) => m.status && m.status.value === "failed");
+    if (!failed.length) return null;
+    const ec = failed[0].status && failed[0].status.exit_code;
+    return rule("failed_model", "bad",
+      { value: failed.length + " — " + failed[0].id + (ec != null ? " (exit " + ec + ")" : "") });
+  },
+  function ruleLoadingLong(s) {
+    if (s.mode !== "router") return null;
+    const loading = (s.models || []).find((m) => m.status && m.status.value === "loading");
+    if (sustained("loading_long", !!loading, 60)) {
+      return rule("loading_long", "warn", { value: loading.id });
+    }
+    return null;
+  },
+];
+
+function rule(id, severity, ctx) {
+  return {
+    id,
+    severity,
+    title:   t("rule." + id + ".title"),
+    explain: t("rule." + id + ".explain"),
+    suggest: t("rule." + id + ".suggest"),
+    context: ctx || null,
+  };
+}
+
+function evaluateGuidance() {
+  const out = [];
+  for (const fn of RULES) {
+    let r;
+    try { r = fn(state); } catch (_e) { continue; }
+    if (!r) continue;
+    if (Array.isArray(r)) out.push.apply(out, r);
+    else out.push(r);
+  }
+  return out;
+}
+
+function renderGuidance() {
+  const sec = $("#guidance-section");
+  if (!sec) return;
+  if (sec.dataset.built !== "1") {
+    sec.dataset.built = "1";
+    sec.innerHTML = "";
+    sec.appendChild(el("div", { class: "card full" }, [
+      el("h2", null, t("guidance.title")),
+      el("div", { class: "guidance-list", id: "guidance-list" }),
+    ]));
+  }
+  const list = $("#guidance-list");
+  const suggestions = evaluateGuidance();
+  list.innerHTML = "";
+  if (!suggestions.length) {
+    list.appendChild(el("div", { class: "sub" }, t("guidance.empty")));
+    return;
+  }
+  for (const s of suggestions) {
+    const item = el("div", { class: "suggestion severity-" + s.severity }, [
+      el("div", { class: "head" }, [
+        el("span", { class: "sev-badge " + s.severity },
+          t("guidance.severity." + s.severity)),
+        el("span", null, s.title),
+        s.context && s.context.value
+          ? el("span", { class: "sub" }, "— " + s.context.value)
+          : null,
+      ].filter(Boolean)),
+      el("div", { class: "body" }, [
+        el("div", null, s.explain),
+        el("div", { style: "margin-top: 4px;" }, [
+          el("strong", null, "→ "),
+          s.suggest,
+        ]),
+      ]),
+    ]);
+    list.appendChild(item);
+  }
+}
+
+/* Re-evaluate guidance whenever the data that feeds it changes. */
+function bumpGuidance() {
+  /* Throttle so a fast metrics poll doesn't spam re-render. */
+  if (bumpGuidance._t) return;
+  bumpGuidance._t = setTimeout(() => {
+    bumpGuidance._t = null;
+    renderGuidance();
+  }, 250);
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -1492,6 +1718,7 @@ function startSecondaryPollers() {
       const data = await fetchJSON("/lora-adapters", { withModel: true, timeout: 6000 });
       state.loraAdapters = Array.isArray(data) ? data : [];
       renderLoraCard();
+      bumpGuidance();
     } catch (e) {
       if (e.status === 404) { state.loraAdapters = []; renderLoraCard(); return; }
       throw e;
@@ -1503,6 +1730,7 @@ function startSecondaryPollers() {
       state.props = p;
       renderModelsCard();
       renderServerConfigCard();
+      bumpGuidance();
     } catch (_e) { /* non-fatal */ }
   });
 }
@@ -1725,6 +1953,7 @@ function renderMetrics(parsed) {
   }
   state.metrics = parsed;
   state.lastUpdate = Date.now();
+  bumpGuidance();
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -1820,6 +2049,7 @@ function renderSlots(slots) {
     .sort((a, b) => Number(a.dataset.slot) - Number(b.dataset.slot));
   for (const n of items) grid.appendChild(n);
   state.slots = slots;
+  bumpGuidance();
 }
 
 function makeSlotNode(s) {

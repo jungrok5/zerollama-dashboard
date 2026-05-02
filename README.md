@@ -21,13 +21,13 @@ it from the same page.
   temperature / top_p / max_tokens.
 - **Plain-language tips** — when the server is under pressure, the
   dashboard tells you which option to tune (for example, "the queue
-  is growing — try raising `--parallel` by one").
+  is growing — try raising `--parallel` by 1").
 - **Per-slot detail** — the full sampling configuration (temperature,
   top_k, top_p, repeat_penalty, mirostat, …) all in one place.
 - **Five UI languages** — English / 한국어 / 日本語 / 简体中文 /
   Español. Auto-selected from your browser, switchable any time from
   the header.
-- **Auto-detection** of single-model and router servers.
+- **Auto-detection** of single-model and multi-model (router) servers.
 
 ## Getting started
 
@@ -63,19 +63,6 @@ http://localhost:8000/monitor.html?server=http://10.0.0.5:8080
 
 Every setting lives in the URL, so a link captures the exact view —
 share it and the recipient sees the same thing.
-
-## Host your own demo
-
-Want a public URL anyone can open? GitHub Pages is free and never
-sleeps:
-
-1. Repo **Settings → Pages → Source = "GitHub Actions"**.
-2. Push to `main`.
-
-The included workflow (`.github/workflows/pages.yml`) builds and
-deploys automatically. Visitors land on
-`https://<your-user>.github.io/<repo>/?demo=1`. Everything is static,
-so there's no backend to keep alive.
 
 ## Privacy and safety
 

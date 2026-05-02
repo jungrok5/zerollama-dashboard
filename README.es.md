@@ -30,7 +30,8 @@ desde la misma página.
   chino simplificado / español. Se selecciona automáticamente según
   tu navegador y puedes cambiarla en cualquier momento desde la
   cabecera.
-- **Detección automática** de servidores single-model y router.
+- **Detección automática** de servidores single-model y multi-modelo
+  (router).
 
 ## Cómo empezar
 
@@ -67,19 +68,6 @@ http://localhost:8000/monitor.html?server=http://10.0.0.5:8080
 
 Los ajustes se guardan únicamente en la URL: comparte un enlace y
 quien lo abra verá exactamente la misma vista.
-
-## Despliega tu propia demo
-
-¿Necesitas una URL pública a la que cualquiera pueda acceder? GitHub
-Pages es gratis y no entra en reposo.
-
-1. En el repositorio: **Settings → Pages → Source = "GitHub Actions"**.
-2. Haz push a `main`.
-
-El workflow incluido (`.github/workflows/pages.yml`) se encarga de
-compilar y desplegar automáticamente. Los visitantes podrán acceder a
-`https://<tu-usuario>.github.io/<repo>/?demo=1`. Como todo es
-estático, no hay ningún backend que mantener.
 
 ## Privacidad y seguridad
 

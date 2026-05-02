@@ -10,9 +10,7 @@ name: Deploy demo to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-      - claude/llama-monitoring-dashboard-2RHay
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,7 +20,9 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  # If a newer deploy is queued, cancel the older one cleanly instead
+  # of leaving it to fail — Pages only accepts one deploy at a time.
+  cancel-in-progress: true
 
 jobs:
   build:

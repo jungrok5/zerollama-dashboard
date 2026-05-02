@@ -606,6 +606,7 @@ const I18N = {
     "models.confirm.load":      "Load model {name}? This consumes server resources.",
     "models.confirm.unload":    "Unload model {name}? In-flight requests may fail.",
     "models.no_models":         "No models found",
+    "models.no_data":           "No model info — couldn't reach the server.",
     "models.cached":            "cached",
     "modal.warn_router":        "This will modify the running router.",
     "modal.warn_server":        "This will affect the running server.",
@@ -629,6 +630,7 @@ const I18N = {
     "config.title":             "Server launch options",
     "config.router_args":       "CLI args (from /models)",
     "config.effective_subset":  "Effective config (subset)",
+    "config.no_data":           "No config available — couldn't reach /props.",
     "config.effective_note":    "llama-server does not expose CLI args in single-model mode. For complete launch-option visibility, use router mode (start llama-server without -m).",
 
     "log.title":                "Server log (tail)",
@@ -640,6 +642,9 @@ const I18N = {
 
     "guidance.title":           "Active suggestions",
     "guidance.empty":           "No suggestions right now — server looks healthy.",
+    "guidance.no_data":         "Cannot reach the server — no data to analyse.",
+    "hint.no_server.title":     "Nothing to monitor here.",
+    "hint.no_server.body":      "Add ?demo=1 to see synthetic data, or ?server=http://your-llama-server:8080 to point at a real one.",
     "guidance.severity.info":   "info",
     "guidance.severity.warn":   "warn",
     "guidance.severity.bad":    "action",
@@ -795,6 +800,7 @@ const I18N = {
     "models.confirm.load":    "{name} 모델을 로드하시겠습니까? 서버 자원이 사용됩니다.",
     "models.confirm.unload":  "{name} 모델을 언로드하시겠습니까? 진행 중인 요청이 실패할 수 있습니다.",
     "models.no_models":       "모델이 없습니다",
+    "models.no_data":         "모델 정보 없음 — 서버에 연결하지 못했습니다.",
     "models.cached":          "캐시됨",
     "modal.warn_router":      "이 작업은 실행 중인 라우터의 상태를 변경합니다.",
     "modal.warn_server":      "이 작업은 실행 중인 서버에 영향을 줍니다.",
@@ -816,6 +822,7 @@ const I18N = {
     "config.title":            "서버 실행 옵션",
     "config.router_args":      "CLI 인수 (/models 응답)",
     "config.effective_subset": "유효 설정 (일부)",
+    "config.no_data":         "설정을 가져올 수 없습니다 — /props에 연결하지 못했습니다.",
     "config.effective_note":   "llama-server는 단일 모델 모드에서 CLI 인수를 노출하지 않습니다. 완전한 실행 옵션 가시화가 필요하면 라우터 모드를 사용하세요 (-m 없이 실행).",
     "log.title":            "서버 로그 (tail)",
     "log.follow":           "Tail 따라가기",
@@ -825,6 +832,9 @@ const I18N = {
     "log.setup_help":       "로그 패널은 정적 파일을 HTTP Range로 읽습니다. 세 가지 조건이 모두 충족되어야 합니다: (1) llama-server 로그가 파일로 리다이렉트되어 있어야 함, (2) 그 파일이 monitor.html과 같은 origin에서 서빙되어야 함, (3) HTTP 서버가 Range 헤더를 지원해야 함. 예: llama-server ... --path ./public > ./public/server.log 2>&1",
     "guidance.title":         "추천 조치",
     "guidance.empty":         "현재 추천 조치가 없습니다 — 서버 상태가 양호합니다.",
+    "guidance.no_data":       "서버에 연결할 수 없습니다 — 분석할 데이터가 없습니다.",
+    "hint.no_server.title":   "여기서 모니터링할 대상이 없습니다.",
+    "hint.no_server.body":    "?demo=1을 붙이면 합성 데이터를 볼 수 있고, ?server=http://여러분의-llama-server:8080으로 실제 서버를 가리킬 수 있습니다.",
     "guidance.severity.info": "정보",
     "guidance.severity.warn": "주의",
     "guidance.severity.bad":  "조치 필요",
@@ -968,6 +978,7 @@ const I18N = {
     "models.confirm.load":    "モデル {name} をロードしますか? サーバーリソースを消費します。",
     "models.confirm.unload":  "モデル {name} をアンロードしますか? 進行中のリクエストが失敗する可能性があります。",
     "models.no_models":       "モデルが見つかりません",
+    "models.no_data":         "モデル情報なし — サーバに接続できませんでした。",
     "models.cached":          "キャッシュ済み",
     "modal.warn_router":      "この操作は動作中のルーターの状態を変更します。",
     "modal.warn_server":      "この操作は動作中のサーバーに影響します。",
@@ -989,6 +1000,7 @@ const I18N = {
     "config.title":            "サーバー起動オプション",
     "config.router_args":      "CLI 引数 (/models から)",
     "config.effective_subset": "有効設定 (サブセット)",
+    "config.no_data":         "設定を取得できません — /props に接続できませんでした。",
     "config.effective_note":   "llama-server は単一モデルモードで CLI 引数を公開しません。完全な起動オプション可視化が必要であれば、ルーターモード (-m なし) を使用してください。",
     "log.title":            "サーバーログ (tail)",
     "log.follow":           "末尾を追従",
@@ -998,6 +1010,9 @@ const I18N = {
     "log.setup_help":       "ログパネルは静的ファイルを HTTP Range で読み取ります。三つの条件すべてが必要です: (1) llama-server のログがファイルにリダイレクトされている、(2) そのファイルが同じ origin で配信されている、(3) HTTP サーバーが Range をサポートしている。例: llama-server ... --path ./public > ./public/server.log 2>&1",
     "guidance.title":         "アクティブな提案",
     "guidance.empty":         "現在の提案はありません — サーバーは正常です。",
+    "guidance.no_data":       "サーバーに接続できません — 分析対象のデータがありません。",
+    "hint.no_server.title":   "ここには監視対象がありません。",
+    "hint.no_server.body":    "?demo=1 を付けると合成データを表示します。実サーバを指定するには ?server=http://your-llama-server:8080 を付けてください。",
     "guidance.severity.info": "情報",
     "guidance.severity.warn": "注意",
     "guidance.severity.bad":  "対応推奨",
@@ -1141,6 +1156,7 @@ const I18N = {
     "models.confirm.load":    "加载模型 {name}? 将占用服务器资源。",
     "models.confirm.unload":  "卸载模型 {name}? 进行中的请求可能失败。",
     "models.no_models":       "未找到模型",
+    "models.no_data":         "无模型信息 — 无法连接到服务器。",
     "models.cached":          "已缓存",
     "modal.warn_router":      "该操作会修改运行中的路由器状态。",
     "modal.warn_server":      "该操作会影响运行中的服务器。",
@@ -1162,6 +1178,7 @@ const I18N = {
     "config.title":            "服务器启动选项",
     "config.router_args":      "CLI 参数 (来自 /models)",
     "config.effective_subset": "有效配置 (子集)",
+    "config.no_data":         "无配置可显示 — /props 不可达。",
     "config.effective_note":   "llama-server 在单模型模式下不暴露 CLI 参数。如需完整启动选项可见性,请使用路由模式 (启动时不指定 -m)。",
     "log.title":            "服务器日志 (tail)",
     "log.follow":           "跟踪末尾",
@@ -1171,6 +1188,9 @@ const I18N = {
     "log.setup_help":       "日志面板通过 HTTP Range 读取静态文件。需同时满足三个条件: (1) llama-server 日志重定向到文件; (2) 该文件由相同 origin 提供; (3) HTTP 服务器支持 Range。示例: llama-server ... --path ./public > ./public/server.log 2>&1",
     "guidance.title":         "活动建议",
     "guidance.empty":         "暂无建议 — 服务器状态良好。",
+    "guidance.no_data":       "无法连接到服务器 — 没有可分析的数据。",
+    "hint.no_server.title":   "这里没有可监控的对象。",
+    "hint.no_server.body":    "添加 ?demo=1 查看合成数据,或使用 ?server=http://你的-llama-server:8080 指向真实服务器。",
     "guidance.severity.info": "信息",
     "guidance.severity.warn": "注意",
     "guidance.severity.bad":  "需处理",
@@ -1314,6 +1334,7 @@ const I18N = {
     "models.confirm.load":    "¿Cargar el modelo {name}? Consume recursos del servidor.",
     "models.confirm.unload":  "¿Descargar el modelo {name}? Las peticiones en curso pueden fallar.",
     "models.no_models":       "No se encontraron modelos",
+    "models.no_data":         "Sin info de modelo — no se pudo contactar el servidor.",
     "models.cached":          "en caché",
     "modal.warn_router":      "Esta acción modificará el router en ejecución.",
     "modal.warn_server":      "Esta acción afectará al servidor en ejecución.",
@@ -1335,6 +1356,7 @@ const I18N = {
     "config.title":            "Opciones de arranque del servidor",
     "config.router_args":      "Argumentos CLI (de /models)",
     "config.effective_subset": "Configuración efectiva (subconjunto)",
+    "config.no_data":         "Sin configuración disponible — no se pudo contactar /props.",
     "config.effective_note":   "llama-server no expone los argumentos CLI en modo de modelo único. Para una visibilidad completa, usa el modo router (inicia llama-server sin -m).",
     "log.title":            "Log del servidor (tail)",
     "log.follow":           "Seguir el final",
@@ -1344,6 +1366,9 @@ const I18N = {
     "log.setup_help":       "El panel de logs lee un archivo estático mediante HTTP Range. Deben cumplirse tres condiciones: (1) los logs de llama-server se redirigen a un archivo, (2) ese archivo se sirve desde el mismo origen, (3) el servidor HTTP soporta Range. Ejemplo: llama-server ... --path ./public > ./public/server.log 2>&1",
     "guidance.title":         "Sugerencias activas",
     "guidance.empty":         "Sin sugerencias ahora — el servidor parece sano.",
+    "guidance.no_data":       "No se puede contactar el servidor — sin datos para analizar.",
+    "hint.no_server.title":   "Aquí no hay nada que monitorizar.",
+    "hint.no_server.body":    "Añade ?demo=1 para ver datos sintéticos, o ?server=http://tu-llama-server:8080 para apuntar a un servidor real.",
     "guidance.severity.info": "info",
     "guidance.severity.warn": "atención",
     "guidance.severity.bad":  "acción",
@@ -1479,6 +1504,10 @@ const state = {
   slots: [],
   history: { metrics: [], slots: [] }, /* time series buffers */
   paused: false,
+  /* `healthy` flips true only when /props came back at least once.
+   * The status LED reads this — never `lastUpdate` alone — so a
+   * pause/resume or visibility toggle can't lie about server state. */
+  healthy: false,
   pollers: [],          /* {name, abort, timer} */
   errors: [],           /* visible error banners */
   lastUpdate: null,
@@ -1881,7 +1910,12 @@ async function fetchEndpoint(path, opts, kind) {
     clearTimeout(timer);
     if (!res.ok) {
       const errBody = await safeReadBody(res);
-      const e = new Error("HTTP " + res.status + (errBody ? " — " + errBody.slice(0, 200) : ""));
+      /* Strip HTML responses (e.g. a CDN / static-host 404 page) from the
+       * user-facing error message — printing raw markup is ugly and tells
+       * the user nothing useful. Keep the first ~80 chars for non-HTML. */
+      const looksHtml = /^\s*<(!doctype|html|head)/i.test(errBody || "");
+      const tail = (errBody && !looksHtml) ? " — " + errBody.replace(/\s+/g, " ").slice(0, 80) : "";
+      const e = new Error("HTTP " + res.status + tail);
       e.status = res.status;
       e.body = errBody;
       throw e;
@@ -1961,8 +1995,15 @@ function stopAllPollers() {
 /* Pause / resume hook for keyboard shortcut (Phase 9). */
 function setPaused(v) {
   state.paused = !!v;
-  setStatus(state.paused ? "warn" : (state.lastUpdate ? "online" : "connecting"),
-            state.paused ? "common.pause" : "header.status.online");
+  if (state.paused) {
+    setStatus("warn", "common.pause");
+  } else if (state.healthy) {
+    setStatus("online", "header.status.online");
+  } else if (state.ui.bootDone) {
+    setStatus("offline", "header.status.offline");
+  } else {
+    setStatus("connecting", "header.status.connecting");
+  }
 }
 
 /* When the tab is hidden, abort in-flight requests and pause —
@@ -2062,7 +2103,16 @@ async function boot() {
   /* Don't lie: only show "online" if /props came back. Otherwise leave
    * whichever error/offline state was set above so the LED matches the
    * banner. */
-  if (state.props) setStatus("online", "header.status.online");
+  if (state.props) {
+    state.healthy = true;
+    setStatus("online", "header.status.online");
+  } else if (!state.params.demo && !state.params.server) {
+    /* User opened the page on a static host with neither ?demo nor
+     * ?server. They probably don't realise the dashboard is trying to
+     * call /metrics on the page's own origin. Tell them what to do. */
+    showBanner("no-server",
+      t("hint.no_server.title") + " " + t("hint.no_server.body"), "warn");
+  }
 
   renderBootSummary();
   renderChatPanel();
@@ -2142,10 +2192,17 @@ function renderModelsCard() {
       card.appendChild(list);
     }
   } else {
-    /* single-model: show the active model's metadata */
+    /* single-model: show the active model's metadata.
+     * If neither /v1/models nor /props came back, render a "no data"
+     * note instead of a fake card with a placeholder name like "model"
+     * and a green "loaded" badge. */
     const id = (state.v1models[0] && state.v1models[0].id)
             || (state.props && state.props.model_path)
-            || "model";
+            || null;
+    if (!id) {
+      card.appendChild(el("div", { class: "sub" }, t("models.no_data")));
+      return;
+    }
     const meta = findV1Meta(id) || state.v1models[0] || null;
     card.appendChild(singleModelCard(id, meta));
   }
@@ -2283,8 +2340,15 @@ function renderServerConfigCard() {
     }
     card.appendChild(list);
   } else {
+    /* If /props never came back, don't fake an "effective config" with
+     * default-derived booleans (e.g. is_sleeping=No is meaningless when
+     * we never reached the server). */
+    if (!state.props) {
+      card.appendChild(el("div", { class: "sub" }, t("config.no_data")));
+      return;
+    }
     card.appendChild(el("div", { class: "sub" }, t("config.effective_subset")));
-    const props = state.props || {};
+    const props = state.props;
     const meta = (state.v1models[0] && state.v1models[0].meta) || {};
     const rows = [];
     function add(label, v) {
@@ -2301,7 +2365,9 @@ function renderServerConfigCard() {
           ? props.chat_template.split("\n").slice(0, 3).join(" / ").slice(0, 200)
           : null);
     add("build_info",   props.build_info);
-    add("is_sleeping",  props.is_sleeping ? t("common.yes") : t("common.no"));
+    if (props.is_sleeping !== undefined) {
+      add("is_sleeping", props.is_sleeping ? t("common.yes") : t("common.no"));
+    }
     if (props.default_generation_settings) {
       const dg = props.default_generation_settings;
       const dgKeys = ["temperature", "top_k", "top_p", "min_p",
@@ -2704,7 +2770,14 @@ function renderGuidance() {
   const suggestions = evaluateGuidance();
   list.innerHTML = "";
   if (!suggestions.length) {
-    list.appendChild(el("div", { class: "sub" }, t("guidance.empty")));
+    /* "No suggestions" can mean two very different things:
+     *   1. Server is reachable and looks healthy → keep the existing copy.
+     *   2. We can't reach the server at all → stop pretending it's healthy.
+     * Distinguish by whether anything came back. */
+    const noData = !state.props && !state.metrics
+                   && (!state.slots || !state.slots.length);
+    list.appendChild(el("div", { class: "sub" },
+      t(noData ? "guidance.no_data" : "guidance.empty")));
     return;
   }
   for (const s of suggestions) {
@@ -2963,6 +3036,11 @@ function startSecondaryPollers() {
     try {
       const p = await fetchJSON("/props", { withModel: true, timeout: 6000 });
       state.props = p;
+      /* Server came back to life mid-session — flip the LED to truth. */
+      if (!state.healthy) {
+        state.healthy = true;
+        if (!state.paused) setStatus("online", "header.status.online");
+      }
       renderModelsCard();
       renderServerConfigCard();
       bumpGuidance();

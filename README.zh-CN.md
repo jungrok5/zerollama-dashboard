@@ -10,7 +10,6 @@
 
 ![仪表盘](docs/screenshots/main-en.png)
 ![聊天面板](docs/screenshots/chat-panel.png)
-![移动端视图](docs/screenshots/mobile.png)
 
 ## 主要功能
 

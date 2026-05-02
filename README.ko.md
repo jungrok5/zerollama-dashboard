@@ -10,7 +10,6 @@
 
 ![대시보드](docs/screenshots/main-en.png)
 ![채팅 패널](docs/screenshots/chat-panel.png)
-![모바일 화면](docs/screenshots/mobile.png)
 
 ## 주요 기능
 

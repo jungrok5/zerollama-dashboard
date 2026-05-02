@@ -10,7 +10,6 @@
 
 ![ダッシュボード](docs/screenshots/main-en.png)
 ![チャットパネル](docs/screenshots/chat-panel.png)
-![モバイル表示](docs/screenshots/mobile.png)
 
 ## 主な機能
 

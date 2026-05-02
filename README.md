@@ -10,7 +10,6 @@ it from the same page.
 
 ![dashboard](docs/screenshots/main-en.png)
 ![chat panel](docs/screenshots/chat-panel.png)
-![mobile view](docs/screenshots/mobile.png)
 
 ## What you get
 

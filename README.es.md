@@ -11,7 +11,6 @@ desde la misma página.
 
 ![panel](docs/screenshots/main-en.png)
 ![panel de chat](docs/screenshots/chat-panel.png)
-![vista móvil](docs/screenshots/mobile.png)
 
 ## Qué incluye
 

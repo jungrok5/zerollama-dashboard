@@ -1,15 +1,30 @@
 # zerollama-dashboard
 
-[llama.cpp](https://github.com/ggml-org/llama.cpp) 서버 상태를 한 페이지에
-보여주는 실시간 대시보드입니다. 브라우저에서 열기만 하면 모델이 무엇을
-하고 있는지 한눈에 확인할 수 있고, 같은 화면에서 모델과 대화도 가능합니다.
+[llama.cpp](https://github.com/ggml-org/llama.cpp) 서버를 위한 단일 HTML
+모니터링 대시보드입니다. 슬롯 단위의 요청 상태와 샘플링 파라미터를
+실시간으로 보여주고, 무언가 조정이 필요할 때는 자연어로 어떤 옵션을
+어떻게 바꿔야 할지 알려줍니다. 같은 페이지에 내장된 채팅 패널로
+프롬프트를 보내면서 메트릭이 어떻게 반응하는지 함께 관찰할 수 있습니다.
 
-[**▶ 라이브 데모 열기**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — 실제 서버 없이 화면 구성을 먼저 확인할 수 있습니다.
+[**▶ 라이브 데모 열기**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — 실제 서버 없이 내장 mock 서버 위에서 동작합니다.
 
 > Languages: [English](README.md) · **한국어** · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
 ![대시보드](docs/screenshots/main-en.png)
 ![채팅 패널](docs/screenshots/chat-panel.png)
+
+## 왜 만들었나
+
+llama.cpp의 기본 내장 WebUI는 채팅 클라이언트이고 실시간 서버 상태는
+보여주지 않습니다. Prometheus + Grafana 조합은 숫자를 노출하지만 어떤
+플래그를 어떻게 바꿔야 하는지는 알려주지 않고, Open WebUI / LibreChat
+계열은 슬롯 가시성이 없는 채팅 전용 프론트엔드입니다. zerollama-dashboard는
+그 사이의 빈 자리를 채웁니다. `/metrics` + `/slots`를 운영자 시각으로
+보여주고, 처방형 튜닝 힌트를 함께 띄우며, 멀티 모델 **라우터** 모드도
+지원합니다(각 모델의 실제 실행 인수까지 노출). 같은 페이지의 채팅
+패널로 모니터링 중인 서버를 직접 두드려볼 수도 있습니다 — 모든 것이
+HTML 파일 하나에 들어 있어 서버 옆에 두거나 GitHub Pages로 바로 열 수
+있습니다.
 
 ## 주요 기능
 

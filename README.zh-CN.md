@@ -1,15 +1,27 @@
 # zerollama-dashboard
 
-为 [llama.cpp](https://github.com/ggml-org/llama.cpp) 服务器打造的实时
-状态面板。在浏览器中打开即可查看模型当前的运行情况,并在同一页面中直接
-与模型对话。
+为 [llama.cpp](https://github.com/ggml-org/llama.cpp) 服务器设计的
+单文件 HTML 监控面板。实时显示每个槽位的请求状态与采样参数,并在需要
+调整时用自然语言提示应当修改哪个参数。同一页面内置的聊天面板可以发送
+提示词,直接观察相关指标如何变化。
 
-[**▶ 打开在线演示**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) —— 无需真实服务器即可体验完整界面。
+[**▶ 打开在线演示**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) —— 在内置 mock 服务器上运行,无需真实后端。
 
 > Languages: [English](README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · **简体中文** · [Español](README.es.md)
 
 ![仪表盘](docs/screenshots/main-en.png)
 ![聊天面板](docs/screenshots/chat-panel.png)
+
+## 项目定位
+
+llama.cpp 官方内置的 WebUI 是聊天客户端,不展示实时服务器状态;
+Prometheus + Grafana 方案能输出数值,却不会告诉你应当修改哪个参数;
+Open WebUI、LibreChat 等同类工具是聊天前端,缺乏槽位级可见性。
+zerollama-dashboard 正好填补这一空白:以运维者视角展示 `/metrics` 与
+`/slots`,提供处方式的调优提示,并支持多模型**路由**模式(可显示每个
+模型的实际启动参数)。同一页面的聊天面板还可以直接对所监控的服务器
+发起请求 —— 一切都装在一个 HTML 文件里,既能放在服务器目录下打开,
+也能直接通过 GitHub Pages 访问。
 
 ## 主要功能
 

@@ -1,16 +1,32 @@
 # zerollama-dashboard
 
-Un panel de estado en tiempo real para tu servidor
-[llama.cpp](https://github.com/ggml-org/llama.cpp). Ábrelo en el
-navegador para ver lo que está haciendo tu modelo, y chatea con él
-desde la misma página.
+Un panel de monitoreo en un único archivo HTML para servidores
+[llama.cpp](https://github.com/ggml-org/llama.cpp). Muestra en
+tiempo real el estado de cada slot y sus parámetros de muestreo, y
+te dice en lenguaje claro qué opción ajustar cuando algo necesita
+afinarse. Un chat integrado en la misma página te permite lanzar
+prompts y observar cómo reaccionan las métricas.
 
-[**▶ Probar la demo en vivo**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — funciona sin un servidor real, solo para que te hagas una idea.
+[**▶ Probar la demo en vivo**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — corre contra un servidor mock integrado, sin backend.
 
 > Languages: [English](README.md) · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · **Español**
 
 ![panel](docs/screenshots/main-en.png)
 ![panel de chat](docs/screenshots/chat-panel.png)
+
+## Por qué existe
+
+La WebUI integrada de llama.cpp es un cliente de chat y no muestra el
+estado del servidor en vivo. Las pilas Prometheus + Grafana exponen
+números pero no te dicen qué flag tocar. Open WebUI, LibreChat y
+similares son frontends de chat, no monitores conscientes de los
+slots. zerollama-dashboard se sitúa en ese hueco: una vista de operador
+de `/metrics` + `/slots` con consejos de ajuste prescriptivos,
+soporte de modo **router** multi-modelo (incluyendo los argumentos CLI
+reales con que se lanzó cada modelo), y un chat integrado para
+interrogar al servidor que estás vigilando — todo en un solo archivo
+HTML que puedes dejar junto a llama-server o abrir directamente desde
+GitHub Pages.
 
 ## Qué incluye
 

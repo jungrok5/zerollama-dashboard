@@ -1,15 +1,31 @@
 # zerollama-dashboard
 
-[llama.cpp](https://github.com/ggml-org/llama.cpp) サーバの状態を 1 画面に
-表示するリアルタイムダッシュボードです。ブラウザで開けばモデルの動きが
-ひと目で分かり、同じ画面からそのモデルとチャットすることもできます。
+[llama.cpp](https://github.com/ggml-org/llama.cpp) サーバ向けの、
+HTML 1 ファイルだけで動くモニタリングダッシュボードです。各スロットの
+リクエスト状態とサンプリングパラメータをリアルタイムに表示し、調整が
+必要なときはどのオプションをどう変えるべきかを自然な文章で示します。
+同じページに内蔵されたチャットパネルからプロンプトを送り、メトリクスが
+どう反応するかを並べて観察できます。
 
-[**▶ ライブデモを開く**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — 実際のサーバを用意しなくても画面の様子を確認できます。
+[**▶ ライブデモを開く**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — 内蔵モックサーバ上で動くため、実サーバは不要です。
 
 > Languages: [English](README.md) · [한국어](README.ko.md) · **日本語** · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
 ![ダッシュボード](docs/screenshots/main-en.png)
 ![チャットパネル](docs/screenshots/chat-panel.png)
+
+## このプロジェクトの位置づけ
+
+llama.cpp 公式の WebUI はチャットクライアントで、ライブな
+サーバ状態は見られません。Prometheus + Grafana は数値は出せても
+「どのフラグをどう変えるか」までは教えてくれず、Open WebUI や
+LibreChat などはスロット単位の可視化を持たないチャット専用フロント
+エンドです。zerollama-dashboard はその隙間を埋めます: `/metrics` +
+`/slots` を運用者視点で表示し、処方箋的な調整ヒントを添え、マルチ
+モデル**ルーター**モードにも対応します(各モデルの実際の起動引数も
+表示)。同じページのチャットパネルから、監視対象のサーバを直接叩く
+こともできます ── すべてが HTML 1 枚に収まっているので、サーバの隣に
+置いて開いても、GitHub Pages から直接開いても動きます。
 
 ## 主な機能
 

@@ -1,15 +1,29 @@
 # zerollama-dashboard
 
-A live status page for your [llama.cpp](https://github.com/ggml-org/llama.cpp)
-server. Open it in a browser, see what your model is doing, and chat with
-it from the same page.
+A single-HTML monitoring dashboard for [llama.cpp](https://github.com/ggml-org/llama.cpp)
+servers. See every slot's request state and sampling parameters in
+real time, and get plain-language hints when something needs tuning.
+A built-in chat panel lets you fire prompts and watch the metrics
+react on the same page.
 
-[**▶ Try the live demo**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — no real server needed, just so you can see what it looks like.
+[**▶ Try the live demo**](https://jungrok5.github.io/zerollama-dashboard/?demo=1) — runs against a built-in mock server, no backend required.
 
 > Languages: **English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) · [Español](README.es.md)
 
 ![dashboard](docs/screenshots/main-en.png)
 ![chat panel](docs/screenshots/chat-panel.png)
+
+## Why this exists
+
+llama.cpp's built-in WebUI is a chat client and shows no live server
+state. Prometheus + Grafana setups expose numbers but won't tell you
+which flag to change. Open WebUI, LibreChat and friends are chat
+front-ends, not slot-aware monitors. zerollama-dashboard sits in that
+gap: a focused operator view of `/metrics` + `/slots` with prescriptive
+tuning hints, multi-model **router**-mode awareness (including each
+model's actual launch arguments), and a chat panel for poking the
+server you're watching — all in one HTML file you can drop next to
+`monitor.html` or open straight from GitHub Pages.
 
 ## What you get
 

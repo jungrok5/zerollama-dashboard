@@ -646,17 +646,17 @@ const I18N = {
     "guidance.tooltip_more":    "Tap for details",
 
     /* guidance rules — Phase 7 fills out title/explain/suggest per id */
-    "rule.busy_slots_high.title":   "Slots saturated",
-    "rule.busy_slots_high.explain": "n_busy_slots_per_decode is the average number of slots that were actively decoding during each model step. When it stays close to total_slots the server has no headroom — new requests will queue.",
-    "rule.busy_slots_high.suggest": "Raise --parallel by 1 (each slot costs roughly ctx_size tokens of KV memory), or reduce client concurrency.",
+    "rule.slots_saturated.title":   "Slots saturated",
+    "rule.slots_saturated.explain": "Almost every slot is currently processing a request. The server has no headroom; the next request will start queueing.",
+    "rule.slots_saturated.suggest": "Raise --parallel from {total} to {suggested} (each extra slot costs about ctx_size tokens of KV memory), or reduce client concurrency.",
 
-    "rule.deferred.title":         "Requests being deferred",
-    "rule.deferred.explain":       "requests_deferred is the queue of requests waiting for a free slot. > 0 sustained means clients are facing latency from queueing, not from inference.",
-    "rule.deferred.suggest":       "Raise --parallel by 1 (each slot costs roughly ctx_size tokens of KV memory), or reduce client concurrency.",
+    "rule.deferred.title":         "Requests waiting in queue",
+    "rule.deferred.explain":       "requests_deferred is the queue of requests waiting for a free slot. Sustained > 0 means clients are facing latency from queueing, not inference.",
+    "rule.deferred.suggest":       "Raise --parallel to {suggested} (currently {total}) so the queue clears, or lower client concurrency. Each slot needs roughly ctx_size tokens of KV memory.",
 
-    "rule.idle_slow.title":        "Generation slow while slots idle",
-    "rule.idle_slow.explain":      "Low predicted_tokens_seconds with idle slots usually means inference is CPU-bound — not enough layers offloaded to GPU.",
-    "rule.idle_slow.suggest":      "Increase --n-gpu-layers (or -ngl) until VRAM is the limit.",
+    "rule.idle_slow.title":        "Generation throughput dropped sharply",
+    "rule.idle_slow.explain":      "predicted_tokens_seconds is currently {current} tok/s, less than half of the recent 60-second median ({baseline} tok/s). Something is slowing inference — common causes are CPU-bound layers, KV-cache shifting, or contention with another process.",
+    "rule.idle_slow.suggest":      "If the model spilled to CPU, raise --n-gpu-layers (or -ngl) until VRAM is the limit. Otherwise check for another process competing for the GPU.",
 
     "rule.sleeping.title":         "Model is sleeping",
     "rule.sleeping.explain":       "The model has been unloaded after --sleep-idle-seconds of inactivity. The next request will reload it (multi-second delay).",
@@ -829,15 +829,15 @@ const I18N = {
     "guidance.severity.warn": "주의",
     "guidance.severity.bad":  "조치 필요",
     "guidance.tooltip_more":  "탭하면 자세히",
-    "rule.busy_slots_high.title":   "슬롯 포화",
-    "rule.busy_slots_high.explain": "n_busy_slots_per_decode는 매 디코드 단계에서 활성이었던 슬롯 수의 평균입니다. total_slots에 가까운 값이 지속되면 서버 여유가 없고 신규 요청은 큐에 쌓입니다.",
-    "rule.busy_slots_high.suggest": "--parallel을 1 늘리거나(슬롯당 대략 ctx_size 토큰의 KV 메모리), 클라이언트 동시성을 줄이세요.",
-    "rule.deferred.title":         "요청이 대기열에 쌓이는 중",
-    "rule.deferred.explain":       "requests_deferred는 빈 슬롯을 기다리는 요청 수입니다. 0보다 큰 상태가 지속되면 클라이언트는 추론이 아닌 큐 대기로 인한 지연을 겪습니다.",
-    "rule.deferred.suggest":       "--parallel을 1 늘리거나(슬롯당 ctx_size만큼 KV 메모리 추가) 클라이언트 동시성을 줄이세요.",
-    "rule.idle_slow.title":        "슬롯이 한가한데도 생성이 느림",
-    "rule.idle_slow.explain":      "predicted_tokens_seconds가 낮은데 슬롯이 idle이면 보통 GPU 오프로딩이 부족해 CPU 바운드 상태입니다.",
-    "rule.idle_slow.suggest":      "VRAM이 한계가 될 때까지 --n-gpu-layers (-ngl)를 늘리세요.",
+    "rule.slots_saturated.title":   "슬롯 포화",
+    "rule.slots_saturated.explain": "거의 모든 슬롯이 현재 요청을 처리 중입니다. 서버에 여유가 없어 다음 요청은 큐에 쌓입니다.",
+    "rule.slots_saturated.suggest": "--parallel을 {total}에서 {suggested}로 올리세요(슬롯당 약 ctx_size 토큰의 KV 메모리 필요). 또는 클라이언트 동시성을 줄이세요.",
+    "rule.deferred.title":         "큐에서 대기 중인 요청",
+    "rule.deferred.explain":       "requests_deferred는 빈 슬롯을 기다리는 요청 수입니다. 0보다 큰 상태가 지속되면 클라이언트는 추론이 아니라 큐 대기로 인한 지연을 겪습니다.",
+    "rule.deferred.suggest":       "--parallel을 {suggested}로 올려 큐를 비우세요(현재 {total}). 또는 클라이언트 동시성을 줄이세요. 슬롯당 약 ctx_size 토큰의 KV 메모리가 필요합니다.",
+    "rule.idle_slow.title":        "생성 속도가 급격히 하락",
+    "rule.idle_slow.explain":      "현재 predicted_tokens_seconds는 {current} tok/s로, 최근 60초 중간값({baseline} tok/s)의 절반에도 못 미칩니다. 무언가 추론을 늦추고 있습니다 — 주요 원인은 CPU로 떨어진 레이어, KV 캐시 시프팅, 다른 프로세스와의 GPU 경합입니다.",
+    "rule.idle_slow.suggest":      "모델이 CPU로 흘러내렸다면 VRAM 한계까지 --n-gpu-layers (-ngl)를 올리세요. 그렇지 않다면 GPU를 함께 사용하는 다른 프로세스를 점검하세요.",
     "rule.sleeping.title":         "모델이 슬립 상태",
     "rule.sleeping.explain":       "--sleep-idle-seconds 동안 활동이 없어 모델이 언로드되었습니다. 다음 요청 시 재로딩됩니다(수 초 지연).",
     "rule.sleeping.suggest":       "재로딩 지연을 받아들일 수 없다면 --sleep-idle-seconds를 늘리거나 옵션을 제거하세요.",
@@ -1002,15 +1002,15 @@ const I18N = {
     "guidance.severity.warn": "注意",
     "guidance.severity.bad":  "対応推奨",
     "guidance.tooltip_more":  "タップで詳細",
-    "rule.busy_slots_high.title":   "スロット飽和",
-    "rule.busy_slots_high.explain": "n_busy_slots_per_decode は各デコードステップで稼働していたスロット数の平均です。total_slots に近い値が続くと余裕がなくなり、新規リクエストはキューに溜まります。",
-    "rule.busy_slots_high.suggest": "--parallel を 1 増やす(スロットごとに約 ctx_size トークンの KV メモリが必要)、またはクライアント並行度を下げてください。",
-    "rule.deferred.title":         "リクエストが遅延しています",
-    "rule.deferred.explain":       "requests_deferred は空きスロットを待つキューの長さです。0 より大きい状態が続くと、推論ではなくキュー待ちが遅延の主因になります。",
-    "rule.deferred.suggest":       "--parallel を 1 増やす(各スロットは ctx_size 分の KV メモリを消費)、またはクライアントの同時実行を減らしてください。",
-    "rule.idle_slow.title":        "スロットがアイドルなのに生成が遅い",
-    "rule.idle_slow.explain":      "predicted_tokens_seconds が低くスロットがアイドルなら、通常 GPU オフロード不足で CPU バウンドになっています。",
-    "rule.idle_slow.suggest":      "VRAM が上限に達するまで --n-gpu-layers (-ngl) を増やしてください。",
+    "rule.slots_saturated.title":   "スロット飽和",
+    "rule.slots_saturated.explain": "ほぼ全てのスロットが現在リクエストを処理しています。余裕がなく、次のリクエストはキューに溜まり始めます。",
+    "rule.slots_saturated.suggest": "--parallel を {total} から {suggested} に増やしてください(追加スロットごとに約 ctx_size 分の KV メモリが必要)。あるいはクライアント並行度を下げてください。",
+    "rule.deferred.title":         "リクエストが待機中",
+    "rule.deferred.explain":       "requests_deferred は空きスロットを待つキューの長さです。継続して 0 を超えると、推論ではなくキュー待ちが遅延の主因になります。",
+    "rule.deferred.suggest":       "--parallel を {suggested} に上げてキューを解消してください(現在 {total})。またはクライアントの同時実行を減らしてください。各スロットは約 ctx_size 分の KV メモリを必要とします。",
+    "rule.idle_slow.title":        "生成スループットが急落",
+    "rule.idle_slow.explain":      "現在 predicted_tokens_seconds は {current} tok/s で、直近 60 秒の中央値({baseline} tok/s)の半分以下です。推論を遅らせる何かが起きています — よくある原因は CPU に落ちたレイヤー、KV キャッシュのシフト、他プロセスとの GPU 競合です。",
+    "rule.idle_slow.suggest":      "モデルが CPU に溢れたなら、VRAM の限界まで --n-gpu-layers (-ngl) を増やしてください。そうでなければ GPU を奪う別プロセスを確認してください。",
     "rule.sleeping.title":         "モデルがスリープ中",
     "rule.sleeping.explain":       "--sleep-idle-seconds の経過後にモデルがアンロードされました。次のリクエストで再ロードされます (数秒の遅延)。",
     "rule.sleeping.suggest":       "再ロード遅延が許容できない場合は --sleep-idle-seconds を増やすか、フラグを削除してください。",
@@ -1175,15 +1175,15 @@ const I18N = {
     "guidance.severity.warn": "注意",
     "guidance.severity.bad":  "需处理",
     "guidance.tooltip_more":  "点击查看详情",
-    "rule.busy_slots_high.title":   "槽位饱和",
-    "rule.busy_slots_high.explain": "n_busy_slots_per_decode 是每次解码步骤中处于活动状态的槽位平均数。当其接近 total_slots 时服务器无余量,新请求会排队。",
-    "rule.busy_slots_high.suggest": "将 --parallel 增加 1(每个槽位约需 ctx_size 个 token 的 KV 内存),或减少客户端并发数。",
-    "rule.deferred.title":         "请求被排队",
-    "rule.deferred.explain":       "requests_deferred 是等待空闲槽位的请求队列。持续大于 0 意味着客户端的延迟来自排队,而非推理。",
-    "rule.deferred.suggest":       "将 --parallel 加 1 (每个槽位约消耗 ctx_size 的 KV 内存),或降低客户端并发。",
-    "rule.idle_slow.title":        "槽位空闲但生成很慢",
-    "rule.idle_slow.explain":      "predicted_tokens_seconds 低且槽位空闲,通常意味着 GPU 卸载不足、推理被 CPU 拖慢。",
-    "rule.idle_slow.suggest":      "在 VRAM 允许范围内继续提高 --n-gpu-layers (-ngl)。",
+    "rule.slots_saturated.title":   "槽位饱和",
+    "rule.slots_saturated.explain": "几乎所有槽位都在处理请求。服务器没有余量,下一个请求将开始排队。",
+    "rule.slots_saturated.suggest": "将 --parallel 从 {total} 提升到 {suggested}(每多一个槽位约需 ctx_size 个 token 的 KV 内存),或降低客户端并发。",
+    "rule.deferred.title":         "请求在队列中等待",
+    "rule.deferred.explain":       "requests_deferred 是等待空闲槽位的请求队列。持续大于 0 表示客户端延迟来自排队,而非推理本身。",
+    "rule.deferred.suggest":       "将 --parallel 提升至 {suggested}(当前 {total})以清空队列,或降低客户端并发。每个槽位约需要 ctx_size 个 token 的 KV 内存。",
+    "rule.idle_slow.title":        "生成吞吐急剧下降",
+    "rule.idle_slow.explain":      "当前 predicted_tokens_seconds 为 {current} tok/s,不到最近 60 秒中位数({baseline} tok/s)的一半。某种因素正在拖慢推理 — 常见原因有 CPU 上的层、KV 缓存平移,以及另一个进程占用 GPU。",
+    "rule.idle_slow.suggest":      "如果模型部分溢出到 CPU,请在 VRAM 允许范围内提高 --n-gpu-layers (-ngl)。否则检查是否有其他进程在抢占 GPU。",
     "rule.sleeping.title":         "模型处于休眠",
     "rule.sleeping.explain":       "经过 --sleep-idle-seconds 闲置,模型已被卸载。下次请求会触发重新加载 (数秒延迟)。",
     "rule.sleeping.suggest":       "若不接受重载延迟,请增大 --sleep-idle-seconds 或移除该选项。",
@@ -1348,15 +1348,15 @@ const I18N = {
     "guidance.severity.warn": "atención",
     "guidance.severity.bad":  "acción",
     "guidance.tooltip_more":  "Toca para más detalle",
-    "rule.busy_slots_high.title":   "Slots saturados",
-    "rule.busy_slots_high.explain": "n_busy_slots_per_decode es el promedio de slots activos durante cada paso de decode. Cuando se acerca a total_slots el servidor no tiene margen y las nuevas peticiones se encolan.",
-    "rule.busy_slots_high.suggest": "Aumenta --parallel en 1 (cada slot consume aproximadamente ctx_size tokens de memoria KV) o reduce la concurrencia del cliente.",
-    "rule.deferred.title":         "Las peticiones se están encolando",
+    "rule.slots_saturated.title":   "Slots saturados",
+    "rule.slots_saturated.explain": "Casi todos los slots están procesando peticiones. El servidor no tiene margen; la próxima petición empezará a encolarse.",
+    "rule.slots_saturated.suggest": "Sube --parallel de {total} a {suggested} (cada slot adicional cuesta ~ctx_size tokens de memoria KV), o reduce la concurrencia del cliente.",
+    "rule.deferred.title":         "Peticiones en cola",
     "rule.deferred.explain":       "requests_deferred es la cola de peticiones esperando un slot libre. > 0 sostenido implica latencia por cola, no por inferencia.",
-    "rule.deferred.suggest":       "Sube --parallel en 1 (cada slot cuesta ~ctx_size tokens de memoria KV) o reduce la concurrencia del cliente.",
-    "rule.idle_slow.title":        "Generación lenta con slots inactivos",
-    "rule.idle_slow.explain":      "Bajos predicted_tokens_seconds con slots libres suele indicar inferencia limitada por CPU — pocos layers en GPU.",
-    "rule.idle_slow.suggest":      "Aumenta --n-gpu-layers (-ngl) hasta el límite de la VRAM.",
+    "rule.deferred.suggest":       "Sube --parallel a {suggested} (actual {total}) para vaciar la cola, o reduce la concurrencia del cliente. Cada slot consume ~ctx_size tokens de memoria KV.",
+    "rule.idle_slow.title":        "El throughput de generación cayó bruscamente",
+    "rule.idle_slow.explain":      "predicted_tokens_seconds está en {current} tok/s, menos de la mitad de la mediana de los últimos 60 segundos ({baseline} tok/s). Algo está frenando la inferencia — causas comunes: layers en CPU, KV-cache shifting, u otro proceso compitiendo por la GPU.",
+    "rule.idle_slow.suggest":      "Si el modelo se desbordó a CPU, sube --n-gpu-layers (-ngl) hasta el límite de la VRAM. Si no, busca otro proceso compitiendo por la GPU.",
     "rule.sleeping.title":         "El modelo está dormido",
     "rule.sleeping.explain":       "El modelo se descargó tras --sleep-idle-seconds de inactividad. La próxima petición lo recargará (varios segundos).",
     "rule.sleeping.suggest":       "Si la latencia de recarga no es aceptable, sube --sleep-idle-seconds o quita el flag.",
@@ -2057,6 +2057,7 @@ async function boot() {
   }
 
   state.ui.bootDone = true;
+  state.bootedAt = Date.now();
   state.lastUpdate = Date.now();
   /* Don't lie: only show "online" if /props came back. Otherwise leave
    * whichever error/offline state was set above so the LED matches the
@@ -2508,39 +2509,64 @@ function sustained(id, condition, seconds) {
   return false;
 }
 
+/* Rule order matters only for tie-breaking; final list is sorted by
+ * severity in evaluateGuidance(). */
 const RULES = [
   /* --- aggregate metrics --- */
-  function ruleBusySlots(s) {
-    /* n_busy_slots_per_decode is the running average of how many slots
-     * were busy during each llama_decode() call. Compared to total_slots
-     * this tells us if the server is running near saturation. */
-    const v = s.metrics && s.metrics["llamacpp:n_busy_slots_per_decode"];
-    const total = s.props && s.props.total_slots;
-    if (v == null || !total) return null;
-    const ratio = v / total;
-    if (sustained("busy_slots_high", ratio >= 0.9, 30)) {
-      return rule("busy_slots_high", "warn",
-        { value: v.toFixed(2) + " / " + total });
+  function ruleSlotsSaturated(s) {
+    /* Real-time saturation: count how many slots are currently
+     * is_processing and compare to total. /slots is a gauge — unlike
+     * llamacpp:n_busy_slots_per_decode which is a lifetime average and
+     * therefore unsuitable for "right now" alerting. */
+    if (!s.slots || !s.slots.length) return null;
+    const total = s.slots.length;
+    const busy = s.slots.filter(function (sl) { return sl.is_processing; }).length;
+    const ratio = busy / total;
+    if (sustained("slots_saturated", ratio >= 0.9, 30)) {
+      return rule("slots_saturated", "warn",
+        { value: busy + " / " + total,
+          busy: busy, total: total, suggested: total + 1 });
     }
     return null;
   },
   function ruleDeferred(s) {
     const v = s.metrics && s.metrics["llamacpp:requests_deferred"];
     if (v == null) return null;
+    const total = (s.slots && s.slots.length) ||
+                  (s.props && s.props.total_slots) || null;
     if (sustained("deferred", v > 0, 5)) {
-      return rule("deferred", v >= 5 ? "bad" : "warn", { value: String(v) });
+      return rule("deferred", v >= 5 ? "bad" : "warn",
+        { value: String(v), deferred: v, total: total,
+          suggested: total ? total + 1 : null });
     }
     return null;
   },
   function ruleIdleSlow(s) {
+    /* Relative-to-baseline: is current generation throughput < 50% of
+     * the recent (60s) median, with at least one slot busy?
+     * Absolute thresholds (e.g. <5 tok/s) misfire on CPU rigs where 5
+     * tok/s is normal, so we compare against the server's own recent
+     * behaviour instead. */
     const tps = s.metrics && s.metrics["llamacpp:predicted_tokens_seconds"];
     const proc = s.metrics && s.metrics["llamacpp:requests_processing"];
-    /* "slow" is relative — we say <5 tok/s with at least one slot busy */
-    if (tps != null && proc >= 1 && tps < 5 && tps > 0) {
-      if (sustained("idle_slow", true, 10)) {
-        return rule("idle_slow", "warn", { value: tps.toFixed(2) + " tok/s" });
-      }
-    } else { sustained("idle_slow", false, 10); }
+    if (tps == null || !(proc >= 1) || tps <= 0) {
+      sustained("idle_slow", false, 10);
+      return null;
+    }
+    const hist = histories["predicted_tps"] || [];
+    /* need at least 20s of samples to call a "baseline" */
+    if (hist.length < 20) { sustained("idle_slow", false, 10); return null; }
+    const sorted = hist.map(function (p) { return p.v; })
+                       .filter(function (v) { return v > 0; })
+                       .sort(function (a, b) { return a - b; });
+    if (sorted.length < 10) { sustained("idle_slow", false, 10); return null; }
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const drop = tps < median * 0.5;
+    if (sustained("idle_slow", drop, 10)) {
+      return rule("idle_slow", "warn",
+        { value: tps.toFixed(1) + " / " + median.toFixed(1) + " tok/s",
+          current: tps.toFixed(1), baseline: median.toFixed(1) });
+    }
     return null;
   },
   /* --- props-derived --- */
@@ -2612,18 +2638,42 @@ const RULES = [
   },
 ];
 
+/* `{key}` placeholders inside i18n strings are substituted from ctx so
+ * suggestions can quote actual numbers ("--parallel from 4 to 5")
+ * instead of static text. Missing keys are left as-is so an outdated
+ * translation doesn't break rendering. */
+function fillTemplate(str, ctx) {
+  if (!ctx) return str;
+  return String(str).replace(/\{(\w+)\}/g, function (_, k) {
+    return ctx[k] != null ? String(ctx[k]) : "{" + k + "}";
+  });
+}
+
 function rule(id, severity, ctx) {
   return {
     id,
     severity,
-    title:   t("rule." + id + ".title"),
-    explain: t("rule." + id + ".explain"),
-    suggest: t("rule." + id + ".suggest"),
+    title:   fillTemplate(t("rule." + id + ".title"),   ctx),
+    explain: fillTemplate(t("rule." + id + ".explain"), ctx),
+    suggest: fillTemplate(t("rule." + id + ".suggest"), ctx),
     context: ctx || null,
   };
 }
 
+/* Rules are silenced for the first WARMUP_SECONDS after boot — without
+ * this, sparse early metrics produce false positives (e.g. the first
+ * /slots reply already shows is_processing=true on a single warmup
+ * request and we'd flag "saturated"). */
+const WARMUP_SECONDS = 10;
+function inWarmup() {
+  return !state.bootedAt ||
+         (Date.now() - state.bootedAt) < WARMUP_SECONDS * 1000;
+}
+
+const SEVERITY_RANK = { bad: 0, warn: 1, info: 2 };
+
 function evaluateGuidance() {
+  if (inWarmup()) return [];
   const out = [];
   for (const fn of RULES) {
     let r;
@@ -2632,6 +2682,10 @@ function evaluateGuidance() {
     if (Array.isArray(r)) out.push.apply(out, r);
     else out.push(r);
   }
+  /* Sort so the most actionable items surface first. Stable-ish on ties. */
+  out.sort(function (a, b) {
+    return (SEVERITY_RANK[a.severity] || 9) - (SEVERITY_RANK[b.severity] || 9);
+  });
   return out;
 }
 

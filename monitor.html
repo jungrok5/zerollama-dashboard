@@ -1465,13 +1465,19 @@ function parseParams() {
     log:    q.has("log") ? q.get("log") : null,   /* null = auto-detect */
     lang:   (q.get("lang") || "").trim(),
     prompt: q.get("prompt") || "",                /* prefill chat input */
-    demo:   (q.get("demo") || "").trim(),         /* "", "1", "router" */
+    demo:   demoMode(q.get("demo")),              /* "", "1", or "router" */
   };
 }
 function clampInt(s, fallback, min, max) {
   const n = parseInt(s, 10);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, n));
+}
+function demoMode(v) {
+  /* Only "1" (single) and "router" enable the mock; anything else stays
+   * live so a typo like ?demo=true doesn't silently swap real metrics. */
+  const s = (v || "").trim();
+  return s === "1" || s === "router" ? s : "";
 }
 
 /* Pick a UI language from ?lang, then navigator.language, then 'en'. */
@@ -2837,12 +2843,16 @@ const logState = {
 
 function logUrl() {
   /* honor explicit ?log=, default to ./server.log relative to the
-   * current page (NOT the API server — that wouldn't be reachable). */
+   * current page (NOT the API server — that wouldn't be reachable).
+   * Same-origin only: a shared link with ?log=https://attacker… would
+   * otherwise pull cross-origin from the viewer's browser. */
   const p = state.params.log;
   if (p === "") return null;       /* explicitly disabled */
   const path = (p == null || p === undefined) ? "server.log" : p;
   try {
-    return new URL(path, window.location.href).toString();
+    const u = new URL(path, window.location.href);
+    if (u.origin !== window.location.origin) return null;
+    return u.toString();
   } catch (_e) { return null; }
 }
 
